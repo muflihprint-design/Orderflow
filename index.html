@@ -22,7 +22,27 @@
   0% { background-position: -468px 0; }
   100% { background-position: 468px 0; }
 }
-    
+
+    #toast { 
+  visibility: hidden; 
+  min-width: 200px; 
+  background-color: #1f2937; 
+  color: #fff; 
+  text-align: center; 
+  border-radius: 12px; 
+  padding: 12px; 
+  position: fixed; 
+  z-index: 100; 
+  left: 50%; 
+  bottom: 100px; 
+  transform: translateX(-50%); 
+  font-size: 13px; 
+}
+
+#toast.show { 
+  visibility: visible; 
+  animation: fadein 0.5s, fadeout 0.5s 2.5s; 
+}
     
     /* Navigation Bar */
     .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-around; padding: 12px 0; z-index: 50; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
@@ -669,5 +689,6 @@ function showLoadingState(targetId) {
 
     window.onload = loadOrders;
   </script>
+  <div id="toast"></div>
 </body>
 </html>
