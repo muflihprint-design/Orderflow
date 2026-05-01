@@ -693,14 +693,13 @@ function openDetail(id) {
       setTimeout(() => modal.classList.add('hidden'), 300);
     }
 
- async function confirmStatus(newStatus) {
+async function confirmStatus(newStatus) {
   const stageDl = document.getElementById('edit-status-deadline').value;
   const finalDl = document.getElementById('edit-final-deadline').value;
 
-  // Cari data pesanan sebelum update untuk keperluan notifikasi
+  // Cari data pesanan sebelum update
   const order = allOrders.find(o => o.id === selectedOrderId);
-  const oldStatus = order ? order.status : 'Tidak diketahui';
-
+  
   // 1. Update UI Lokal (Optimistic)
   const orderIdx = allOrders.findIndex(o => o.id === selectedOrderId);
   if (orderIdx !== -1) {
@@ -727,11 +726,10 @@ function openDetail(id) {
     if (result.success) {
       showToast("✓ Berhasil diperbarui!");
       
-      // KIRIM NOTIFIKASI KE TELEGRAM
-      if (order) {
-        // Kita gunakan fungsi khusus update status agar muncul info "Desain -> Produksi"
-        sendTelegramNotification(order, oldStatus, newStatus);
-      }
+      // 3. KIRIM REKAP KE TELEGRAM
+      // Menggunakan fungsi gabungan yang baru saja diperbarui
+      // Default parameter adalah true (Kirim ke Telegram + Salin Clipboard)
+      processOrderRekap();
             
       loadOrders(); // Refresh data untuk memastikan sinkronisasi
     } else {
