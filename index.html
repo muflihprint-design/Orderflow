@@ -143,48 +143,69 @@
     </div>
 
     <!-- PAGE: TAMBAH -->
-    <div id="page-tambah" class="page p-6">
-      <h2 class="text-2xl font-black text-gray-900 mb-6 italic">Pesanan Baru</h2>
-      <form id="add-order-form" onsubmit="handleFormSubmit(event)" class="space-y-5">
-        <div>
-          <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Nama Customer</label>
-          <input type="text" name="customer" required placeholder="Contoh: Bpk. Junaidi" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500">
-        </div>
-        <div>
-          <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">WhatsApp</label>
-          <input type="tel" name="phone" placeholder="0812..." class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500">
-        </div>
-        <div>
-          <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Nama Pekerjaan</label>
-          <input type="text" name="jobName" required placeholder="Contoh: Spanduk 3x1m" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500">
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Quantity</label>
-            <input type="text" name="quantity" placeholder="10 pcs" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200">
-          </div>
-          <div>
-            <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Prioritas</label>
-            <select name="priority" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200">
-              <option value="Normal">Normal</option>
-              <option value="Urgent">Urgent</option>
-              <option value="Sangat Urgent">Sangat Urgent</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Deadline Final</label>
-          <input type="date" name="finalDeadline" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200">
-        </div>
-        <div>
-          <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Catatan</label>
-          <textarea name="description" rows="3" placeholder="Detail bahan, finishing, dll..." class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200"></textarea>
-        </div>
-        <button type="submit" id="submit-btn" class="w-full py-5 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200 active:scale-95 transition-transform flex justify-center items-center gap-2">
-          <i data-lucide="send" class="w-5 h-5"></i> SIMPAN PESANAN
-        </button>
-      </form>
+   <!-- PAGE: TAMBAH -->
+<div id="page-tambah" class="page p-6">
+  <h2 class="text-2xl font-black text-gray-900 mb-6 italic">Pesanan Baru</h2>
+  <form id="add-order-form" onsubmit="handleFormSubmit(event)" class="space-y-5">
+    <div>
+      <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Nama Customer</label>
+      <input type="text" name="customer" required placeholder="Contoh: Bpk. Junaidi" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500">
     </div>
+    <div>
+      <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">WhatsApp</label>
+      <input type="tel" name="phone" placeholder="0812..." class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500">
+    </div>
+    <div>
+      <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Nama Pekerjaan</label>
+      <input type="text" name="jobName" required placeholder="Contoh: Spanduk 3x1m" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500">
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Quantity</label>
+        <input type="text" name="quantity" placeholder="10 pcs" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200">
+      </div>
+      <div>
+        <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Prioritas</label>
+        <select name="priority" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200">
+          <option value="Normal">Normal</option>
+          <option value="Urgent">Urgent</option>
+          <option value="Sangat Urgent">Sangat Urgent</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Grouping Deadline: Final & Target Tahapan -->
+    <div class="grid grid-cols-2 gap-4 items-end">
+      <div>
+        <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Deadline Final</label>
+        <input type="date" name="finalDeadline" required class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div class="p-4 bg-blue-50 rounded-2xl border border-blue-100">
+        <label class="block text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">Target Tahapan Ini</label>
+        <input type="date" name="statusDeadline" required class="w-full p-3 bg-white border-none rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm shadow-sm">
+      </div>
+    </div>
+
+    <div>
+    <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Status Awal Pesanan</label>
+    <select name="status" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 appearance-none">
+      <option value="Desain" selected>🎨 Desain</option>
+      <option value="Produksi">⏳ Produksi</option>
+      <option value="Kirim">🖨️ Kirim</option>
+    </select>
+  </div>
+
+    <div>
+      <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Catatan</label>
+      <textarea name="description" rows="3" placeholder="Detail bahan, finishing, dll..." class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200"></textarea>
+    </div>
+
+    <button type="submit" id="submit-btn" class="w-full py-5 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200 active:scale-95 transition-transform flex justify-center items-center gap-2">
+      <i data-lucide="send" class="w-5 h-5"></i> SIMPAN PESANAN
+    </button>
+  </form>
+</div>
 
     <!-- PAGE: SELESAI -->
     <div id="page-selesai" class="page p-4">
@@ -388,47 +409,64 @@ function showLoadingState(targetId) {
 }
     
     async function handleFormSubmit(e) {
-      e.preventDefault();
-      const btn = document.getElementById('submit-btn');
-      btn.disabled = true;
-      btn.innerHTML = '<i class="animate-spin" data-lucide="loader-2"></i> MENYIMPAN...';
-      lucide.createIcons();
+  e.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="animate-spin" data-lucide="loader-2"></i> MENYIMPAN...';
+  if (window.lucide) lucide.createIcons();
 
-      const formData = new FormData(e.target);
-      const newOrder = {
-        id: 'ORD-' + Date.now().toString().slice(-6),
-        customer: formData.get('customer'),
-        phone: formData.get('phone'),
-        jobName: formData.get('jobName'),
-        quantity: formData.get('quantity'),
-        priority: formData.get('priority'),
-        finalDeadline: formData.get('finalDeadline'),
-        entryDate: new Date().toISOString(),
-        description: formData.get('description'),
-        status: 'Desain'
-      };
+  const formData = new FormData(e.target);
+  
+  // Data Pesanan dengan Opsi Status 'Desain'
+  const orderData = {
+    action: 'addNewOrder', 
+    id: 'ORD-' + Date.now().toString().slice(-6),
+    customer: formData.get('customer'),
+    phone: formData.get('phone'),
+    jobName: formData.get('jobName'),
+    quantity: formData.get('quantity'),
+    priority: formData.get('priority'),
+    status: formData.get('status') || 'Desain', // Mengambil dari form atau default ke Desain
+    description: formData.get('description'),
+    finalDeadline: formData.get('finalDeadline'),
+    statusDeadline: formData.get('statusDeadline') 
+  };
 
-      if (isGoogleEnv()) {
-        google.script.run.withSuccessHandler(() => {
-          showToast("Pesanan disimpan!");
-          e.target.reset();
-          loadOrders();
-          switchTab('antrian');
-          btn.disabled = false;
-          btn.innerHTML = '<i data-lucide="send"></i> SIMPAN PESANAN';
-          lucide.createIcons();
-        }).addNewOrder(newOrder);
-      } else {
-        allOrders.unshift(newOrder);
-        showToast("Pesanan disimpan (Preview Mode)!");
+  // Kirim ke Backend GAS
+  if (typeof google === 'undefined' || !google.script) {
+    try {
+      const queryParams = new URLSearchParams(orderData).toString();
+      const response = await fetch(`${WEB_APP_URL}?${queryParams}`);
+      const result = await response.json();
+
+      if (result.success) {
+        showToast("✓ Pesanan 'Desain' Tersimpan!");
         e.target.reset();
+        loadOrders(); 
         switchTab('antrian');
-        btn.disabled = false;
-        btn.innerHTML = '<i data-lucide="send"></i> SIMPAN PESANAN';
-        lucide.createIcons();
-        applyFilters();
+      } else {
+        showToast("❌ Gagal: " + (result.error || "Gagal simpan"));
       }
+    } catch (err) {
+      console.error(err);
+      showToast("❌ Error Koneksi Server");
+    } finally {
+      resetButton(btn);
     }
+  } else {
+    // Jika berjalan di link script.google.com langsung[cite: 1]
+    google.script.run
+      .withSuccessHandler(() => {
+        showToast("✓ Berhasil disimpan!");
+        e.target.reset();
+        loadOrders();
+        switchTab('antrian');
+        resetButton(btn);
+      })
+      .addNewOrder(orderData);
+  }
+}
+    
 
   function openDetail(id) {
   const order = allOrders.find(o => o.id === id);
