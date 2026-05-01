@@ -445,17 +445,28 @@ function showLoadingState(targetId) {
       setTimeout(() => modal.classList.add('hidden'), 300);
     }
 
-    function openStatusModalFromDetail() {
-      closeDetail();
-      setTimeout(() => {
-        const modal = document.getElementById('status-modal');
-        modal.classList.remove('hidden');
-        setTimeout(() => {
-          modal.classList.add('opacity-100');
-          modal.querySelector('.modal-content').classList.replace('translate-y-full', 'translate-y-0');
-        }, 10);
-      }, 350);
-    }
+   function openStatusModalFromDetail() {
+  // 1. Ambil data order yang sedang dipilih berdasarkan selectedOrderId
+  const order = allOrders.find(o => o.id === selectedOrderId);
+  
+  if (order) {
+    // 2. Isi nilai input date di modal status dengan data yang sudah ada
+    // Format tanggal harus yyyy-MM-dd agar bisa tampil di input type="date"
+    document.getElementById('edit-status-deadline').value = order.statusDeadline || "";
+    document.getElementById('edit-final-deadline').value = order.finalDeadline || "";
+  }
+
+  // 3. Proses transisi modal
+  closeDetail();
+  setTimeout(() => {
+    const modal = document.getElementById('status-modal');
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+      modal.classList.add('opacity-100');
+      modal.querySelector('.modal-content').classList.replace('translate-y-full', 'translate-y-0');
+    }, 10);
+  }, 350);
+}
 
     function closeStatusModal() {
       const modal = document.getElementById('status-modal');
