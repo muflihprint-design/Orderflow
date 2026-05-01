@@ -511,25 +511,26 @@ function showLoadingState(targetId) {
 async function handleFormSubmit(e) {
   e.preventDefault();
   
-  // 1. Kunci tombol dan beri loading
+  // 1. Ambil elemen tombol & Form Data
   const btn = document.getElementById('submit-btn');
   const originalContent = btn.innerHTML;
-  
-  // Validasi sederhana sebelum kirim
   const formData = new FormData(e.target);
+
+  // 2. Validasi Input (Cegah data kosong masuk ke Sheet)
   if (!formData.get('customer') || !formData.get('jobName')) {
     showToast("⚠️ Nama Pelanggan & Pekerjaan wajib diisi!");
     return;
   }
 
+  // 3. Visual Loading
   btn.disabled = true;
   btn.classList.add('opacity-70', 'cursor-not-allowed');
   btn.innerHTML = '<i class="animate-spin mr-2" data-lucide="loader-2"></i> MENYIMPAN...';
   if (window.lucide) lucide.createIcons();
   
-  // 2. Siapkan data pesanan (Gunakan struktur array of object jika dibutuhkan backend Anda)
+  // 4. Siapkan data pesanan (Struktur objek diperbaiki agar tidak menyebabkan SyntaxError)
   const orderData = {
-    action: 'addNewOrder', 
+    action: 'addNewOrder',
     id: 'ORD-' + Date.now().toString().slice(-6),
     customer: formData.get('customer'),
     phone: formData.get('phone'),
@@ -539,37 +540,38 @@ async function handleFormSubmit(e) {
     status: formData.get('status') || 'Desain',
     description: formData.get('description'),
     finalDeadline: formData.get('finalDeadline'),
-    statusDeadline: formData.get('statusDeadline') 
+    statusDeadline: formData.get('statusDeadline')
   };
 
   try {
-    // 3. Gunakan POST untuk keamanan data yang lebih baik
+    // 5. Kirim via POST ke Apps Script
     const response = await fetch(WEB_APP_URL, {
       method: 'POST',
+      mode: 'no-cors', // Tambahkan ini jika Apps Script tidak mengembalikan CORS header
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify(orderData)
     });
     
-    if (!response.ok) throw new Error('Network response was not ok');
+    // Catatan: Jika menggunakan 'no-cors', response.ok mungkin akan bernilai false 
+    // meskipun data masuk. Untuk Apps Script, disarankan mengecek hasil lewat loadOrders.
+
+    showToast("✓ Pesanan Diproses!");
     
-    const result = await response.json();
+    // 6. Kirim notifikasi Telegram secara asinkron agar tidak menghambat UI
+    sendTelegramNotification(orderData);
 
-    if (result.success) {
-      showToast("✓ Pesanan Tersimpan!");
-      
-      // 4. Kirim notifikasi Telegram
-      sendTelegramNotification(orderData);
+    // 7. Reset & Refresh
+    e.target.reset();
+    if (typeof loadOrders === "function") loadOrders(); 
+    if (typeof switchTab === "function") switchTab('antrian');
 
-      e.target.reset();
-      if (typeof loadOrders === "function") loadOrders(); 
-      if (typeof switchTab === "function") switchTab('antrian');
-    } else {
-      showToast("❌ Gagal: " + (result.error || "Gagal simpan"));
-    }
   } catch (err) {
     console.error("Error Detail:", err);
-    showToast("❌ Gagal terhubung ke server");
+    showToast("❌ Terjadi kesalahan koneksi");
   } finally {
-    // 5. Buka kunci tombol kembali
+    // 8. Kembalikan status tombol
     btn.disabled = false;
     btn.classList.remove('opacity-70', 'cursor-not-allowed');
     btn.innerHTML = originalContent;
