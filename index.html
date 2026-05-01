@@ -142,69 +142,112 @@
       <div id="order-list" class="space-y-4"></div>
     </div>
  
+
 <!-- PAGE: TAMBAH -->
-<!-- Menambahkan pb-32 agar konten tidak tertutup bottom navigation -->
-<div id="page-tambah" class="page p-6 pb-32">
-  <h2 class="text-2xl font-black text-gray-900 mb-6 italic">Pesanan Baru</h2>
-  <form id="add-order-form" onsubmit="handleFormSubmit(event)" class="space-y-5">
-    <div>
-      <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Nama Customer</label>
-      <input type="text" name="customer" required placeholder="Contoh: Bpk. Junaidi" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500">
-    </div>
-    <div>
-      <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">WhatsApp</label>
-      <input type="tel" name="phone" placeholder="0812..." class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500">
-    </div>
-    <div>
-      <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Nama Pekerjaan</label>
-      <input type="text" name="jobName" required placeholder="Contoh: Spanduk 3x1m" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500">
+<div id="page-tambah" class="page p-6 pb-36"> <!-- pb-36 memberikan ruang ekstra agar tidak tertutup tab -->
+  <div class="mb-8">
+    <h2 class="text-3xl font-black text-gray-900 italic tracking-tighter">Pesanan Baru</h2>
+    <p class="text-gray-500 text-xs mt-1">Lengkapi detail pesanan cetak pelanggan.</p>
+  </div>
+
+  <form id="add-order-form" onsubmit="handleFormSubmit(event)" class="space-y-6">
+    
+    <!-- SECTION 1: INFORMASI PELANGGAN -->
+    <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm space-y-4">
+      <div class="flex items-center gap-2 mb-2 text-blue-600">
+        <i data-lucide="user" class="w-4 h-4"></i>
+        <span class="text-[10px] font-bold uppercase tracking-widest">Informasi Pelanggan</span>
+      </div>
+      
+      <div>
+        <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Nama Customer</label>
+        <input type="text" name="customer" required placeholder="Contoh: Bpk. Junaidi" 
+               class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+      </div>
+      
+      <div>
+        <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">WhatsApp (Opsi)</label>
+        <input type="tel" name="phone" placeholder="0812..." 
+               class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+      </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-4">
-      <div>
-        <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Quantity</label>
-        <input type="text" name="quantity" placeholder="10 pcs" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200">
+    <!-- SECTION 2: DETAIL PEKERJAAN -->
+    <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm space-y-4">
+      <div class="flex items-center gap-2 mb-2 text-orange-500">
+        <i data-lucide="package" class="w-4 h-4"></i>
+        <span class="text-[10px] font-bold uppercase tracking-widest">Detail Pekerjaan</span>
       </div>
+
       <div>
-        <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Prioritas</label>
-        <select name="priority" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200">
-          <option value="Normal">Normal</option>
-          <option value="Urgent">Urgent</option>
-          <option value="Sangat Urgent">Sangat Urgent</option>
+        <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Nama Pekerjaan</label>
+        <input type="text" name="jobName" required placeholder="Contoh: Spanduk 3x1m" 
+               class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Qty</label>
+          <input type="text" name="quantity" placeholder="10 pcs" 
+                 class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+        </div>
+        <div>
+          <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Prioritas</label>
+          <select name="priority" class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none">
+            <option value="Normal">Normal</option>
+            <option value="Urgent">Urgent</option>
+            <option value="Sangat Urgent">Sangat Urgent</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: STATUS & DEADLINE -->
+    <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm space-y-4">
+      <div class="flex items-center gap-2 mb-2 text-green-600">
+        <i data-lucide="calendar" class="w-4 h-4"></i>
+        <span class="text-[10px] font-bold uppercase tracking-widest">Status & Waktu</span>
+      </div>
+
+      <div>
+        <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Status Awal</label>
+        <select name="status" class="w-full p-4 bg-blue-50 text-blue-700 border-0 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
+          <option value="Desain" selected>🎨 Desain</option>
+          <option value="Produksi">⏳ Produksi</option>
+          <option value="Kirim">🖨️ Kirim</option>
         </select>
       </div>
-    </div>
 
-    <!-- Grouping Deadline: Final & Target Tahapan -->
-    <div class="grid grid-cols-2 gap-4 items-end">
-      <div>
-        <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Deadline Final</label>
-        <input type="date" name="finalDeadline" required class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500">
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Deadline Final</label>
+          <input type="date" name="finalDeadline" required 
+                 class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-xs">
+        </div>
+        <div class="bg-blue-600 rounded-2xl p-[2px]"> <!-- Highlight untuk target tahapan -->
+          <div class="bg-white rounded-[14px] p-3">
+            <label class="block text-[9px] font-black text-blue-600 uppercase mb-1">Target Tahapan</label>
+            <input type="date" name="statusDeadline" required 
+                   class="w-full bg-transparent border-none outline-none text-xs font-bold text-gray-800">
+          </div>
+        </div>
       </div>
-      <div class="p-4 bg-blue-50 rounded-2xl border border-blue-100">
-        <label class="block text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">Target Tahapan Ini</label>
-        <input type="date" name="statusDeadline" required class="w-full p-3 bg-white border-none rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm shadow-sm">
-      </div>
     </div>
 
+    <!-- SECTION 4: CATATAN -->
     <div>
-      <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Status Awal Pesanan</label>
-      <select name="status" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 appearance-none">
-        <option value="Desain" selected>🎨 Desain</option>
-        <option value="Produksi">⏳ Produksi</option>
-        <option value="Kirim">🖨️ Kirim</option>
-      </select>
+      <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Catatan Tambahan</label>
+      <textarea name="description" rows="3" placeholder="Detail bahan, finishing, dll..." 
+                class="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"></textarea>
     </div>
 
-    <div>
-      <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Catatan</label>
-      <textarea name="description" rows="3" placeholder="Detail bahan, finishing, dll..." class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200"></textarea>
-    </div>
-
-    <!-- Tombol Simpan -->
-    <button type="submit" id="submit-btn" class="w-full py-5 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200 active:scale-95 transition-transform flex justify-center items-center gap-2">
-      <i data-lucide="send" class="w-5 h-5"></i> SIMPAN PESANAN
+    <!-- TOMBOL SIMPAN -->
+    <button type="submit" id="submit-btn" 
+            class="w-full py-5 bg-blue-600 text-white rounded-3xl font-black shadow-xl shadow-blue-200 active:scale-95 hover:bg-blue-700 transition-all flex justify-center items-center gap-3">
+      <i data-lucide="send" class="w-6 h-6"></i> 
+      <span class="tracking-widest">SIMPAN PESANAN</span>
     </button>
+
   </form>
 </div>
 
