@@ -856,7 +856,7 @@ function renderList(targetId, orders, showDeadline) {
 // FUNGSI NOTIFIKASI TELEGRAM
 function sendTelegramNotification(data) {
   if (allOrders.length === 0) {
-    showToast("Tidak ada data untuk direkap.");
+    showToast("Tidak ada data untuk direkap.");[cite: 1]
     return;
   }
 
@@ -868,90 +868,96 @@ function sendTelegramNotification(data) {
   
   const rekapOrders = allOrders.filter(order => {
     const tglSelesai = order.finalDeadline ? new Date(order.finalDeadline) : null;
-    if (order.status !== 'Selesai') return true;
+    if (order.status !== 'Selesai') return true;[cite: 1]
     if (order.status === 'Selesai' && tglSelesai) {
-      return tglSelesai.getMonth() === bulanIni && tglSelesai.getFullYear() === tahunIni;
+      return tglSelesai.getMonth() === bulanIni && tglSelesai.getFullYear() === tahunIni;[cite: 1]
     }
     return false;
   });
 
   if (rekapOrders.length === 0) {
-    showToast("Tidak ada antrian aktif.");
+    showToast("Tidak ada antrian aktif.");[cite: 1]
     return;
   }
 
-  rekapOrders.sort((a, b) => new Date(a.entryDate) - new Date(b.entryDate));
+  rekapOrders.sort((a, b) => new Date(a.entryDate) - new Date(b.entryDate));[cite: 1]
 
-  const stages = ['Desain', 'Revisi', 'Cetak', 'Finishing', 'Packing', 'Kirim'];
+  // Update: Menghilangkan Revisi dan Kirim
+  const stages = ['Desain', 'Cetak', 'Finishing', 'Packing'];
 
   let teksRekap = `📝 *LIST ORDERAN ${namaBulanHeader}*\n`;
   teksRekap += `--------------------------\n`;
 
   rekapOrders.forEach((order, index) => {
-    // 1. Bagian Utama: Nama Customer, Pekerjaan, dan Jumlah
     let baris = `${index + 1}. *${order.customer}*: ${order.jobName} ${order.quantity ? 'x' + order.quantity : ''}`;
 
     if (order.status === 'Selesai') {
-      // 2a. FORMAT KHUSUS UNTUK ORDERAN SELESAI
       if (order.finalDeadline) {
         const tglFinal = new Date(order.finalDeadline).getDate();
-        baris += `, estimasi selesai pesanan tggl ${tglFinal} ✅`;
+        baris += `, estimasi selesai pesanan tggl ${tglFinal} ✅`;[cite: 1]
       } else {
         baris += ` ✅`;
       }
-      teksRekap += `${baris}\n\n`; // Langsung cetak baris tanpa status/proses visual
+      teksRekap += `${baris}\n\n`; 
     } else {
-      // 2b. FORMAT UNTUK ORDERAN YANG MASIH JALAN
-      
-      // Tambahkan keterangan mau didesainkan/dicetak
       if (['Desain', 'Revisi'].includes(order.status)) {
-        baris += ` _mau didesainkan_`;
+        baris += ` _mau didesainkan_`;[cite: 1]
       } else {
-        baris += ` _mau dicetak_`;
+        baris += ` _mau dicetak_`;[cite: 1]
       }
 
-      // Estimasi Tahap Berjalan
+      // Update: Menghilangkan centang pada estimasi tanggal tahap
       if (order.statusDeadline) {
-        const tglDesain = new Date(order.statusDeadline).getDate();
+        const tglTahap = new Date(order.statusDeadline).getDate();
         const statusSekarang = order.status.toLowerCase();
-        const sudahLewatDesain = !['Desain', 'Revisi'].includes(order.status) ? '✅' : ''; 
-        baris += `, estimasi selesai ${statusSekarang} tggl ${tglDesain}${sudahLewatDesain}`;
+        baris += `, estimasi selesai ${statusSekarang} tggl ${tglTahap}`;[cite: 1]
       }
 
-      // Estimasi Final
       if (order.finalDeadline) {
         const tglFinal = new Date(order.finalDeadline).getDate();
-        baris += `, estimasi selesai pesanan tggl ${tglFinal}`;
+        baris += `, estimasi selesai pesanan tggl ${tglFinal}`;[cite: 1]
       }
 
       // Visualisasi Tahapan Proses
-      const currentIndex = stages.indexOf(order.status);
-      const progressVisual = stages.map((stage, idx) => {
-        return idx < currentIndex ? `${stage}✅` : stage;
+      // Update Logika Centang: Desain centang jika status sudah Konfirmasi atau lebih lanjut
+      const progressVisual = stages.map((stage) => {
+        let isDone = false;
+        
+        if (stage === 'Desain') {
+          // Centang desain jika status sudah Konfirmasi, Cetak, Finishing, Packing, atau Kirim[cite: 1]
+          isDone = !['Desain', 'Revisi'].includes(order.status);[cite: 1]
+        } else {
+          // Untuk tahapan lainnya, centang jika sudah melewati tahap tersebut[cite: 1]
+          const currentIndex = stages.indexOf(order.status);
+          const stageIndex = stages.indexOf(stage);
+          isDone = currentIndex > stageIndex && currentIndex !== -1;[cite: 1]
+        }
+        
+        return isDone ? `${stage}✅` : stage;
       }).join(', ');
 
-      teksRekap += `${baris}\n(${progressVisual})\n\n`;
+      teksRekap += `${baris}\n(${progressVisual})\n\n`;[cite: 1]
     }
   });
 
-  const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U';
-  const chatId = '-5026846679';
+  const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U';[cite: 1]
+  const chatId = '-5026846679';[cite: 1]
   
-  const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(teksRekap)}&parse_mode=Markdown`;
+  const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(teksRekap)}&parse_mode=Markdown`;[cite: 1]
 
-  showToast("Mengirim rekap ke Telegram...");
+  showToast("Mengirim rekap ke Telegram...");[cite: 1]
   
   fetch(url)
     .then(response => {
       if (response.ok) {
-        showToast("✓ Rekap terkirim ke Telegram!");
+        showToast("✓ Rekap terkirim ke Telegram!");[cite: 1]
       } else {
-        throw new Error("Gagal kirim");
+        throw new Error("Gagal kirim");[cite: 1]
       }
     })
     .catch(err => {
-      console.error(err);
-      showToast("❌ Gagal kirim ke Telegram");
+      console.error(err);[cite: 1]
+      showToast("❌ Gagal kirim ke Telegram");[cite: 1]
     });
 }
 
