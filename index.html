@@ -410,38 +410,42 @@ function showLoadingState(targetId) {
       }
     }
 
-    function openDetail(id) {
-      const order = allOrders.find(o => o.id === id);
-      if (!order) return;
-      selectedOrderId = id;
+  function openDetail(id) {
+  const order = allOrders.find(o => o.id === id);
+  if (!order) return;
+  selectedOrderId = id;
 
-      document.getElementById('det-id').textContent = order.id;
-      document.getElementById('det-customer').textContent = order.customer;
-      document.getElementById('det-job').textContent = order.jobName;
-      document.getElementById('det-qty').textContent = order.quantity || '-';
-      document.querySelector('#det-phone span').textContent = order.phone || '-';
-      document.getElementById('det-phone').href = order.phone ? `https://wa.me/${order.phone.replace(/\D/g,'')}` : '#';
-      document.querySelector('#det-entry span').textContent = formatFullDate(order.entryDate || new Date());
-      document.getElementById('det-final-date').textContent = formatFullDate(order.finalDeadline);
-      
-      // Detail modal tetap menampilkan label deadline untuk informasi sejarah
-      document.getElementById('det-final-label').innerHTML = getDeadlineLabel(order.finalDeadline);
-      
-      document.getElementById('det-desc').textContent = order.description || 'Tidak ada catatan.';
+  document.getElementById('det-id').textContent = order.id;
+  document.getElementById('det-customer').textContent = order.customer;
+  document.getElementById('det-job').textContent = order.jobName;
+  document.getElementById('det-qty').textContent = order.quantity || '-';
+  document.querySelector('#det-phone span').textContent = order.phone || '-';
+  
+  // Format No HP untuk link WA (menghilangkan tanda petik satu dari backend)
+  const cleanPhone = (order.phone || '').replace(/'/g, '').replace(/\D/g,'');
+  document.getElementById('det-phone').href = cleanPhone ? `https://wa.me/${cleanPhone}` : '#';
+  
+  document.querySelector('#det-entry span').textContent = formatFullDate(order.entryDate);
+  document.getElementById('det-final-date').textContent = formatFullDate(order.finalDeadline);
+  document.getElementById('det-final-label').innerHTML = getDeadlineLabel(order.finalDeadline);
+  document.getElementById('det-desc').textContent = order.description || 'Tidak ada catatan.';
 
-      const badgesEl = document.getElementById('det-badges');
-      badgesEl.innerHTML = `<span class="status-badge ${getStatusColor(order.status)}">${order.status}</span><span class="status-badge bg-gray-100 text-gray-600">${order.priority}</span>`;
+  const badgesEl = document.getElementById('det-badges');
+  badgesEl.innerHTML = `
+    <span class="status-badge ${getStatusColor(order.status)}">${order.status}</span>
+    <span class="status-badge bg-gray-100 text-gray-600">${order.priority}</span>
+  `;
 
-      const modal = document.getElementById('detail-modal');
-      modal.classList.remove('hidden');
-      setTimeout(() => {
-        modal.classList.add('opacity-100');
-        modal.querySelector('.modal-content').classList.replace('scale-95', 'scale-100');
-        modal.querySelector('.modal-content').classList.replace('opacity-0', 'opacity-100');
-      }, 10);
-      lucide.createIcons();
-    }
-
+  // Tampilkan Modal
+  const modal = document.getElementById('detail-modal');
+  modal.classList.remove('hidden');
+  setTimeout(() => {
+    modal.classList.add('opacity-100');
+    modal.querySelector('.modal-content').classList.replace('scale-95', 'scale-100');
+    modal.querySelector('.modal-content').classList.replace('opacity-0', 'opacity-100');
+  }, 10);
+  lucide.createIcons();
+}
     function closeDetail() {
       const modal = document.getElementById('detail-modal');
       modal.querySelector('.modal-content').classList.replace('scale-100', 'scale-95');
@@ -453,10 +457,8 @@ function showLoadingState(targetId) {
    function openStatusModalFromDetail() {
   // 1. Ambil data order yang sedang dipilih berdasarkan selectedOrderId
   const order = allOrders.find(o => o.id === selectedOrderId);
-  
   if (order) {
-    // 2. Isi nilai input date di modal status dengan data yang sudah ada
-    // Format tanggal harus yyyy-MM-dd agar bisa tampil di input type="date"
+    // Backend mengirim yyyy-MM-dd, ini langsung cocok dengan input type="date"
     document.getElementById('edit-status-deadline').value = order.statusDeadline || "";
     document.getElementById('edit-final-deadline').value = order.finalDeadline || "";
   }
@@ -557,33 +559,33 @@ function showLoadingState(targetId) {
     }
 
     function renderList(targetId, orders, showDeadline) {
-      const listEl = document.getElementById(targetId);
-      if (orders.length === 0) {
-        listEl.innerHTML = `<div class="py-12 text-center text-gray-400 text-sm"><p>Tidak ada pesanan.</p></div>`;
-        return;
-      }
-      
-      listEl.innerHTML = orders.map(order => `
-        <div onclick="openDetail('${order.id}')" class="order-card priority-${(order.priority || 'normal').toLowerCase().replace(' ', '-')} shadow-sm">
-          <div class="flex justify-between items-start gap-4">
-            <div class="flex-1 min-w-0">
-              <p class="text-[9px] text-gray-400 font-mono font-bold mb-1">${order.id}</p>
-              <h3 class="font-bold text-gray-900 leading-tight truncate">${order.customer}</h3>
-              <p class="text-xs text-blue-600 font-bold truncate">${order.jobName}</p>
-            </div>
-            <div class="text-right shrink-0">
-              <span class="status-badge block mb-1 ${getStatusColor(order.status)}">${order.status}</span>
-              ${showDeadline ? `<div class="text-[9px] font-bold">${getDeadlineLabel(order.finalDeadline)}</div>` : ''}
-            </div>
-          </div>
-          <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
-             <span class="text-[10px] text-gray-400 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> Tgl: ${formatFullDate(order.entryDate)}</span>
-             <span class="text-[10px] font-bold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-full">${order.quantity || '-'}</span>
-          </div>
+  const listEl = document.getElementById(targetId);
+  if (orders.length === 0) {
+    listEl.innerHTML = `<div class="py-12 text-center text-gray-400 text-sm"><p>Tidak ada pesanan.</p></div>`;
+    return;
+  }
+  
+  listEl.innerHTML = orders.map(order => `
+    <div onclick="openDetail('${order.id}')" class="order-card priority-${(order.priority || 'normal').toLowerCase().replace(' ', '-')} shadow-sm">
+      <div class="flex justify-between items-start gap-4">
+        <div class="flex-1 min-w-0">
+          <p class="text-[9px] text-gray-400 font-mono font-bold mb-1">${order.id}</p>
+          <h3 class="font-bold text-gray-900 leading-tight truncate">${order.customer}</h3>
+          <p class="text-xs text-blue-600 font-bold truncate">${order.jobname || order.jobName}</p>
         </div>
-      `).join('');
-      lucide.createIcons();
-    }
+        <div class="text-right shrink-0">
+          <span class="status-badge block mb-1 ${getStatusColor(order.status)}">${order.status}</span>
+          ${showDeadline ? `<div class="text-[9px] font-bold">${getDeadlineLabel(order.finalDeadline)}</div>` : ''}
+        </div>
+      </div>
+      <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
+         <span class="text-[10px] text-gray-400 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> Tgl: ${formatFullDate(order.entryDate)}</span>
+         <span class="text-[10px] font-bold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-full">${order.quantity || '-'}</span>
+      </div>
+    </div>
+  `).join('');
+  lucide.createIcons();
+}
 
     function showToast(msg) {
       const toast = document.getElementById("toast");
