@@ -815,11 +815,11 @@ function openDetail(id) {
     }
 
     function applyFilters() {
-  const searchTerm = document.getElementById('search-input').value.toLowerCase();[cite: 1]
+  const searchTerm = document.getElementById('search-input').value.toLowerCase();
   
   // Memisahkan pesanan aktif dan yang sudah selesai
-  const aktifOrders = allOrders.filter(o => o.status !== 'Selesai');[cite: 1]
-  const selesaiOrders = allOrders.filter(o => o.status === 'Selesai');[cite: 1]
+  const aktifOrders = allOrders.filter(o => o.status !== 'Selesai');
+  const selesaiOrders = allOrders.filter(o => o.status === 'Selesai');
 
   // Update Counts berdasarkan tahapan terbaru: Desain, Revisi, Konfirmasi, Cetak, Finishing, Packing, Kirim
   const counts = {
@@ -831,29 +831,29 @@ function openDetail(id) {
     finishing: allOrders.filter(o => o.status === 'Finishing').length,
     packing: allOrders.filter(o => o.status === 'Packing').length,
     kirim: allOrders.filter(o => o.status === 'Kirim').length
-  };[cite: 1]
+  };
 
-  // Memasukkan angka jumlah ke elemen badge di HTML[cite: 1]
+  // Memasukkan angka jumlah ke elemen badge di HTML
   for (const [k, v] of Object.entries(counts)) {
     const el = document.getElementById('count-' + k);
     if (el) el.textContent = v;
-  }[cite: 1]
+  }
 
-  // Filter untuk daftar Antrian Aktif[cite: 1]
+  // Filter untuk daftar Antrian Aktif
   const filteredAktif = aktifOrders.filter(o => {
-    const matchesSearch = `${o.customer} ${o.jobName}`.toLowerCase().includes(searchTerm);[cite: 1]
-    const matchesStatus = currentFilter === 'Aktif' ? true : o.status === currentFilter;[cite: 1]
-    return matchesSearch && matchesStatus;[cite: 1]
+    const matchesSearch = `${o.customer} ${o.jobName}`.toLowerCase().includes(searchTerm);
+    const matchesStatus = currentFilter === 'Aktif' ? true : o.status === currentFilter;
+    return matchesSearch && matchesStatus;
   });
 
-  // Filter untuk daftar Arsip Selesai[cite: 1]
+  // Filter untuk daftar Arsip Selesai
   const filteredSelesai = selesaiOrders.filter(o => {
-    return `${o.customer} ${o.jobName}`.toLowerCase().includes(searchTerm);[cite: 1]
+    return `${o.customer} ${o.jobName}`.toLowerCase().includes(searchTerm);
   });
 
-  // Render hasil ke UI[cite: 1]
-  renderList('order-list', filteredAktif, true); // Menampilkan progress tracker & deadline[cite: 1]
-  renderList('completed-list', filteredSelesai, false); // Sembunyikan detail waktu untuk arsip[cite: 1]
+  // Render hasil ke UI
+  renderList('order-list', filteredAktif, true); // Menampilkan progress tracker & deadline
+  renderList('completed-list', filteredSelesai, false); // Sembunyikan detail waktu untuk arsip
 }
 
 function renderList(targetId, orders, showDeadline) {
@@ -875,7 +875,7 @@ function renderList(targetId, orders, showDeadline) {
         <div class="progress-line"></div>
         ${stages.map((stage, index) => {
           let statusClass = '';
-          // Logika Warna: Biru jika sudah lewat, Merah jika sedang berjalan[cite: 1]
+          // Logika Warna: Biru jika sudah lewat, Merah jika sedang berjalan
           if (index < currentIndex) statusClass = 'completed'; 
           else if (index === currentIndex) statusClass = 'current'; 
           
