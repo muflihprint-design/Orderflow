@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>OrderFlow Pro - Vi Printing</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; }
+    
+    /* Navigation Bar */
+    .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-around; padding: 12px 0; z-index: 50; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #9ca3af; font-size: 10px; font-weight: 600; transition: all 0.2s; flex: 1; }
+    .nav-item.active { color: #2563eb; }
+    
+    /* Filter Styles */
+    .filter-grid { display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; padding-bottom: 8px; -ms-overflow-style: none; scrollbar-width: none; }
+    .filter-grid::-webkit-scrollbar { display: none; }
+    
+    .filter-btn { position: relative; flex: 0 0 auto; padding: 8px 14px; font-size: 11px; border-radius: 9999px; font-weight: 600; border: 1px solid #e5e7eb; background: white; color: #374151; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+    .filter-btn.active { background-color: #2563eb; color: white; border-color: #2563eb; }
+    .count-badge { background: rgba(0,0,0,0.05); padding: 1px 6px; border-radius: 8px; font-size: 10px; font-weight: 700; }
+    .filter-btn.active .count-badge { background: rgba(255,255,255,0.2); }
+    
+    /* Order Cards */
+    .order-card { transition: all 0.2s; border-radius: 1.5rem; background: white; border: 1px solid #e5e7eb; padding: 16px; margin-bottom: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; position: relative; }
+    .order-card:active { transform: scale(0.97); }
+    .priority-urgent { border-left: 5px solid #ef4444; }
+    .priority-sangat-urgent { border-left: 5px solid #b91c1c; background-color: #fef2f2; }
+    .priority-normal { border-left: 5px solid #3b82f6; }
+    
+    .status-badge { font-size: 9px; font-weight: 800; padding: 3px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.025em; }
+    
+    .page { display: none; min-height: 100vh; padding-bottom: 100px; }
+    .page.active { display: block; animation: fadeIn 0.3s ease-out; }
+    
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    #toast { visibility: hidden; min-width: 200px; background-color: #1f2937; color: #fff; text-align: center; border-radius: 12px; padding: 12px; position: fixed; z-index: 100; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 13px; }
+    #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+    @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 100px; opacity: 1; } }
+    @keyframes fadeout { from { bottom: 100px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="bg-white border-b sticky top-0 z-40 px-4 py-3 flex justify-between items-center shadow-sm">
+    <div class="flex items-center gap-2">
+      <div class="p-1.5 bg-blue-600 rounded-lg text-white">
+        <i data-lucide="printer" class="w-5 h-5"></i>
+      </div>
+      <h1 class="font-bold text-base text-gray-800 leading-none">OrderFlow <span class="text-blue-600">Pro</span></h1>
+    </div>
+    <div class="flex items-center gap-3">
+       <button onclick="loadOrders()" class="p-2 text-gray-400 active:text-blue-600"><i data-lucide="rotate-cw" class="w-5 h-5"></i></button>
+    </div>
+  </header>
+
+  <!-- Navigation -->
+  <nav class="nav-bar">
+    <button onclick="switchTab('antrian')" class="nav-item active" id="nav-antrian">
+      <i data-lucide="layers" class="w-6 h-6"></i>
+      <span>Antrian</span>
+    </button>
+    <button onclick="switchTab('tambah')" class="nav-item" id="nav-tambah">
+      <i data-lucide="plus-circle" class="w-6 h-6"></i>
+      <span>Tambah</span>
+    </button>
+    <button onclick="switchTab('selesai')" class="nav-item" id="nav-selesai">
+      <i data-lucide="check-circle" class="w-6 h-6"></i>
+      <span>Selesai</span>
+    </button>
+  </nav>
+
+  <main class="max-w-2xl mx-auto">
+    
+    <!-- PAGE: ANTRIAN -->
+    <div id="page-antrian" class="page active p-4">
+      <div class="mb-5 space-y-4">
+        <div class="relative">
+          <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+          <input type="text" id="search-input" oninput="applyFilters()" placeholder="Cari pelanggan atau kerjaan..." 
+                 class="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl outline-none shadow-sm text-sm focus:ring-2 focus:ring-blue-500/20">
+        </div>
+        
+        <div class="filter-grid" id="status-filters">
+          <button onclick="filterByStatus('Aktif')" class="filter-btn active" data-status="Aktif">
+            Semua <span id="count-aktif" class="count-badge">0</span>
+          </button>
+          <button onclick="filterByStatus('Desain')" class="filter-btn" data-status="Desain">Desain <span id="count-desain" class="count-badge">0</span></button>
+          <button onclick="filterByStatus('Revisi')" class="filter-btn" data-status="Revisi">Revisi <span id="count-revisi" class="count-badge">0</span></button>
+          <button onclick="filterByStatus('Konfirmasi')" class="filter-btn" data-status="Konfirmasi">Konf <span id="count-konfirmasi" class="count-badge">0</span></button>
+          <button onclick="filterByStatus('Produksi')" class="filter-btn" data-status="Produksi">Prod <span id="count-produksi" class="count-badge">0</span></button>
+          <button onclick="filterByStatus('Packing')" class="filter-btn" data-status="Packing">Pack <span id="count-packing" class="count-badge">0</span></button>
+          <button onclick="filterByStatus('Kirim')" class="filter-btn" data-status="Kirim">Kirim <span id="count-kirim" class="count-badge">0</span></button>
+        </div>
+      </div>
+      <div id="order-list" class="space-y-4"></div>
+    </div>
+
+    <!-- PAGE: TAMBAH -->
+    <div id="page-tambah" class="page p-6">
+      <h2 class="text-2xl font-black text-gray-900 mb-6 italic">Pesanan Baru</h2>
+      <form id="add-order-form" onsubmit="handleFormSubmit(event)" class="space-y-5">
+        <div>
+          <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Nama Customer</label>
+          <input type="text" name="customer" required placeholder="Contoh: Bpk. Junaidi" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">WhatsApp</label>
+          <input type="tel" name="phone" placeholder="0812..." class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Nama Pekerjaan</label>
+          <input type="text" name="jobName" required placeholder="Contoh: Spanduk 3x1m" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Quantity</label>
+            <input type="text" name="quantity" placeholder="10 pcs" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200">
+          </div>
+          <div>
+            <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Prioritas</label>
+            <select name="priority" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200">
+              <option value="Normal">Normal</option>
+              <option value="Urgent">Urgent</option>
+              <option value="Sangat Urgent">Sangat Urgent</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Deadline Final</label>
+          <input type="date" name="finalDeadline" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200">
+        </div>
+        <div>
+          <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Catatan</label>
+          <textarea name="description" rows="3" placeholder="Detail bahan, finishing, dll..." class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200"></textarea>
+        </div>
+        <button type="submit" id="submit-btn" class="w-full py-5 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200 active:scale-95 transition-transform flex justify-center items-center gap-2">
+          <i data-lucide="send" class="w-5 h-5"></i> SIMPAN PESANAN
+        </button>
+      </form>
+    </div>
+
+    <!-- PAGE: SELESAI -->
+    <div id="page-selesai" class="page p-4">
+       <div class="mb-5">
+         <h2 class="text-2xl font-black text-gray-900 italic">Arsip Selesai</h2>
+         <p class="text-sm text-gray-500">Daftar semua pesanan yang sudah tuntas dikerjakan.</p>
+       </div>
+       <div id="completed-list" class="space-y-4"></div>
+    </div>
+  </main>
+
+  <!-- Modal Detail -->
+  <div id="detail-modal" class="fixed inset-0 z-[60] hidden bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="modal-content bg-white w-full max-w-lg rounded-t-[2rem] sm:rounded-[2rem] max-h-[90vh] overflow-hidden flex flex-col transform scale-95 opacity-0 transition-all duration-300">
+      <div class="p-6 overflow-y-auto">
+        <div class="flex justify-between items-start mb-6">
+          <div>
+            <span id="det-id" class="text-[10px] font-mono font-bold text-gray-400 block mb-1">ID-000</span>
+            <h2 id="det-customer" class="text-2xl font-black text-gray-900 leading-tight italic">Customer Name</h2>
+            <p id="det-job" class="text-blue-600 font-bold text-lg">Nama Kerjaan</p>
+          </div>
+          <button onclick="closeDetail()" class="p-2 bg-gray-100 rounded-full text-gray-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div id="det-badges" class="flex gap-2 mb-6"></div>
+        <div class="grid grid-cols-2 gap-4 mb-6">
+          <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+            <p class="text-[10px] text-gray-400 font-bold uppercase mb-1">Quantity</p>
+            <p id="det-qty" class="font-bold text-gray-800">-</p>
+          </div>
+          <a id="det-phone" href="#" target="_blank" class="bg-green-50 p-4 rounded-2xl flex flex-col border border-green-100">
+            <p class="text-[10px] text-green-600/50 font-bold uppercase mb-1">WhatsApp</p>
+            <span class="font-bold text-green-700 underline truncate">-</span>
+          </a>
+        </div>
+        <div class="space-y-4 mb-6">
+           <div id="det-entry" class="flex justify-between text-sm"><span class="text-gray-500 font-medium">Tgl Masuk</span><span class="font-bold">-</span></div>
+           <div id="det-final" class="flex justify-between text-sm">
+             <span class="text-gray-500 font-medium">Deadline Final</span>
+             <div class="text-right">
+               <span class="font-bold block" id="det-final-date">-</span>
+               <span id="det-final-label" class="text-[10px] block mt-1"></span>
+             </div>
+           </div>
+        </div>
+        <div class="mb-6">
+          <p class="text-[10px] text-gray-400 font-bold uppercase mb-2">Catatan Pesanan</p>
+          <div id="det-desc" class="bg-gray-50 p-4 rounded-2xl text-sm text-gray-600 italic border border-gray-100"></div>
+        </div>
+      </div>
+      <div class="p-6 bg-white border-t border-gray-100 grid grid-cols-2 gap-3">
+        <button onclick="openStatusModalFromDetail()" class="py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-transform">Update Status</button>
+        <button onclick="closeDetail()" class="py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Status -->
+  <div id="status-modal" class="fixed inset-0 z-[70] hidden bg-black/60 backdrop-blur-sm flex items-end justify-center">
+    <div class="modal-content bg-white w-full max-w-lg rounded-t-[2.5rem] p-8 transform translate-y-full transition-transform duration-300">
+      <h3 class="text-xl font-black mb-6 flex items-center gap-2"><i data-lucide="check-circle-2" class="text-blue-600"></i> Pilih Status Baru</h3>
+      <div class="grid grid-cols-2 gap-3">
+        <button onclick="confirmStatus('Desain')" class="p-4 rounded-2xl bg-blue-50 text-blue-700 font-bold text-sm">Desain</button>
+        <button onclick="confirmStatus('Revisi')" class="p-4 rounded-2xl bg-pink-50 text-pink-700 font-bold text-sm">Revisi</button>
+        <button onclick="confirmStatus('Konfirmasi')" class="p-4 rounded-2xl bg-indigo-50 text-indigo-700 font-bold text-sm">Konfirmasi</button>
+        <button onclick="confirmStatus('Produksi')" class="p-4 rounded-2xl bg-amber-50 text-amber-700 font-bold text-sm">Produksi</button>
+        <button onclick="confirmStatus('Packing')" class="p-4 rounded-2xl bg-purple-50 text-purple-700 font-bold text-sm">Packing</button>
+        <button onclick="confirmStatus('Kirim')" class="p-4 rounded-2xl bg-orange-50 text-orange-700 font-bold text-sm">Kirim</button>
+        <button onclick="confirmStatus('Selesai')" class="p-4 rounded-2xl bg-emerald-600 text-white font-bold text-sm col-span-2 shadow-lg shadow-emerald-200">Tandai Selesai</button>
+      </div>
+      <button onclick="closeStatusModal()" class="w-full mt-6 py-4 text-gray-400 font-bold">Batalkan</button>
+    </div>
+  </div>
+
+  <div id="toast">Berhasil!</div>
+
+  <script>
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbys8piwRVzu8GlP99o59ujxoDjiOH9cLT9W_mnD8QQHkOKF6VDD3P24VvpGTQMSvFKYLQ/exec';
+    
+    let allOrders = [];
+    let currentFilter = 'Aktif';
+    let selectedOrderId = null;
+    
+    lucide.createIcons();
+
+    // FUNGSI DEADLINE DARI USER
+    function getDeadlineLabel(dateStr) {
+      if (!dateStr) return "";
+      
+      const now = new Date();
+      now.setHours(0, 0, 0, 0); 
+      
+      const target = new Date(dateStr);
+      target.setHours(0, 0, 0, 0);
+      
+      const diffTime = target.getTime() - now.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)); 
+
+      if (diffDays === 0) return `<span class="text-orange-600 font-extrabold">HARI INI</span>`;
+      if (diffDays === 1) return `<span class="text-blue-600 font-bold">BESOK</span>`;
+      if (diffDays > 1) return `<span class="text-gray-500">Sisa ${diffDays} hari</span>`;
+      if (diffDays < 0) return `<span class="text-red-600 font-bold">Telat ${Math.abs(diffDays)} hari</span>`;
+      return "";
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      
+      document.getElementById('page-' + tabId).classList.add('active');
+      document.getElementById('nav-' + tabId).classList.add('active');
+      
+      if (tabId === 'antrian' || tabId === 'selesai') applyFilters();
+    }
+
+    function isGoogleEnv() {
+      return typeof google !== 'undefined' && google.script && google.script.run;
+    }
+
+    function formatFullDate(isoString) {
+      if (!isoString) return '-';
+      const d = new Date(isoString);
+      return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function getStatusColor(status) {
+      switch(status) {
+        case 'Desain': return 'bg-blue-100 text-blue-700';
+        case 'Revisi': return 'bg-pink-100 text-pink-700';
+        case 'Konfirmasi': return 'bg-indigo-100 text-indigo-700';
+        case 'Produksi': return 'bg-amber-100 text-amber-700';
+        case 'Packing': return 'bg-purple-100 text-purple-700';
+        case 'Kirim': return 'bg-orange-100 text-orange-700';
+        case 'Selesai': return 'bg-emerald-100 text-emerald-700';
+        default: return 'bg-gray-100 text-gray-600';
+      }
+    }
+
+    async function loadOrders() {
+      if (isGoogleEnv()) {
+        google.script.run
+          .withSuccessHandler((data) => {
+            allOrders = data || [];
+            applyFilters();
+          })
+          .getOrdersFromSheet();
+      } else {
+        try {
+          const response = await fetch(`${WEB_APP_URL}?action=getOrders`);
+          const data = await response.json();
+          allOrders = data || [];
+          applyFilters();
+        } catch (err) {
+          showToast("Gagal memuat data.");
+        }
+      }
+    }
+
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="animate-spin" data-lucide="loader-2"></i> MENYIMPAN...';
+      lucide.createIcons();
+
+      const formData = new FormData(e.target);
+      const newOrder = {
+        id: 'ORD-' + Date.now().toString().slice(-6),
+        customer: formData.get('customer'),
+        phone: formData.get('phone'),
+        jobName: formData.get('jobName'),
+        quantity: formData.get('quantity'),
+        priority: formData.get('priority'),
+        finalDeadline: formData.get('finalDeadline'),
+        entryDate: new Date().toISOString(),
+        description: formData.get('description'),
+        status: 'Desain'
+      };
+
+      if (isGoogleEnv()) {
+        google.script.run.withSuccessHandler(() => {
+          showToast("Pesanan disimpan!");
+          e.target.reset();
+          loadOrders();
+          switchTab('antrian');
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="send"></i> SIMPAN PESANAN';
+          lucide.createIcons();
+        }).addNewOrder(newOrder);
+      } else {
+        allOrders.unshift(newOrder);
+        showToast("Pesanan disimpan (Preview Mode)!");
+        e.target.reset();
+        switchTab('antrian');
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="send"></i> SIMPAN PESANAN';
+        lucide.createIcons();
+        applyFilters();
+      }
+    }
+
+    function openDetail(id) {
+      const order = allOrders.find(o => o.id === id);
+      if (!order) return;
+      selectedOrderId = id;
+
+      document.getElementById('det-id').textContent = order.id;
+      document.getElementById('det-customer').textContent = order.customer;
+      document.getElementById('det-job').textContent = order.jobName;
+      document.getElementById('det-qty').textContent = order.quantity || '-';
+      document.querySelector('#det-phone span').textContent = order.phone || '-';
+      document.getElementById('det-phone').href = order.phone ? `https://wa.me/${order.phone.replace(/\D/g,'')}` : '#';
+      document.querySelector('#det-entry span').textContent = formatFullDate(order.entryDate || new Date());
+      document.getElementById('det-final-date').textContent = formatFullDate(order.finalDeadline);
+      
+      // Detail modal tetap menampilkan label deadline untuk informasi sejarah
+      document.getElementById('det-final-label').innerHTML = getDeadlineLabel(order.finalDeadline);
+      
+      document.getElementById('det-desc').textContent = order.description || 'Tidak ada catatan.';
+
+      const badgesEl = document.getElementById('det-badges');
+      badgesEl.innerHTML = `<span class="status-badge ${getStatusColor(order.status)}">${order.status}</span><span class="status-badge bg-gray-100 text-gray-600">${order.priority}</span>`;
+
+      const modal = document.getElementById('detail-modal');
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modal.classList.add('opacity-100');
+        modal.querySelector('.modal-content').classList.replace('scale-95', 'scale-100');
+        modal.querySelector('.modal-content').classList.replace('opacity-0', 'opacity-100');
+      }, 10);
+      lucide.createIcons();
+    }
+
+    function closeDetail() {
+      const modal = document.getElementById('detail-modal');
+      modal.querySelector('.modal-content').classList.replace('scale-100', 'scale-95');
+      modal.querySelector('.modal-content').classList.replace('opacity-100', 'opacity-0');
+      modal.classList.remove('opacity-100');
+      setTimeout(() => modal.classList.add('hidden'), 300);
+    }
+
+    function openStatusModalFromDetail() {
+      closeDetail();
+      setTimeout(() => {
+        const modal = document.getElementById('status-modal');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+          modal.classList.add('opacity-100');
+          modal.querySelector('.modal-content').classList.replace('translate-y-full', 'translate-y-0');
+        }, 10);
+      }, 350);
+    }
+
+    function closeStatusModal() {
+      const modal = document.getElementById('status-modal');
+      modal.querySelector('.modal-content').classList.replace('translate-y-0', 'translate-y-full');
+      modal.classList.remove('opacity-100');
+      setTimeout(() => modal.classList.add('hidden'), 300);
+    }
+
+    function confirmStatus(newStatus) {
+      const idx = allOrders.findIndex(o => o.id === selectedOrderId);
+      if (idx !== -1) {
+        allOrders[idx].status = newStatus;
+        if (isGoogleEnv()) {
+          google.script.run.updateOrderStatus(selectedOrderId, newStatus, "", "");
+        }
+      }
+      applyFilters(); 
+      closeStatusModal();
+      showToast("Status diperbarui!");
+    }
+
+    function filterByStatus(status) {
+      currentFilter = status;
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-status') === status);
+      });
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const searchTerm = document.getElementById('search-input').value.toLowerCase();
+      
+      const aktifOrders = allOrders.filter(o => o.status !== 'Selesai');
+      const selesaiOrders = allOrders.filter(o => o.status === 'Selesai');
+
+      // Update Counts
+      const counts = {
+        aktif: aktifOrders.length,
+        desain: allOrders.filter(o => o.status === 'Desain').length,
+        revisi: allOrders.filter(o => o.status === 'Revisi').length,
+        konfirmasi: allOrders.filter(o => o.status === 'Konfirmasi').length,
+        produksi: allOrders.filter(o => o.status === 'Produksi').length,
+        packing: allOrders.filter(o => o.status === 'Packing').length,
+        kirim: allOrders.filter(o => o.status === 'Kirim').length
+      };
+
+      for (const [k, v] of Object.entries(counts)) {
+        const el = document.getElementById('count-' + k);
+        if (el) el.textContent = v;
+      }
+
+      const filteredAktif = aktifOrders.filter(o => {
+        const matchesSearch = `${o.customer} ${o.jobName}`.toLowerCase().includes(searchTerm);
+        const matchesStatus = currentFilter === 'Aktif' ? true : o.status === currentFilter;
+        return matchesSearch && matchesStatus;
+      });
+
+      const filteredSelesai = selesaiOrders.filter(o => {
+          return `${o.customer} ${o.jobName}`.toLowerCase().includes(searchTerm);
+      });
+
+      renderList('order-list', filteredAktif, true); // true = tampilkan deadline
+      renderList('completed-list', filteredSelesai, false); // false = sembunyikan deadline
+    }
+
+    function renderList(targetId, orders, showDeadline) {
+      const listEl = document.getElementById(targetId);
+      if (orders.length === 0) {
+        listEl.innerHTML = `<div class="py-12 text-center text-gray-400 text-sm"><p>Tidak ada pesanan.</p></div>`;
+        return;
+      }
+      
+      listEl.innerHTML = orders.map(order => `
+        <div onclick="openDetail('${order.id}')" class="order-card priority-${(order.priority || 'normal').toLowerCase().replace(' ', '-')} shadow-sm">
+          <div class="flex justify-between items-start gap-4">
+            <div class="flex-1 min-w-0">
+              <p class="text-[9px] text-gray-400 font-mono font-bold mb-1">${order.id}</p>
+              <h3 class="font-bold text-gray-900 leading-tight truncate">${order.customer}</h3>
+              <p class="text-xs text-blue-600 font-bold truncate">${order.jobName}</p>
+            </div>
+            <div class="text-right shrink-0">
+              <span class="status-badge block mb-1 ${getStatusColor(order.status)}">${order.status}</span>
+              ${showDeadline ? `<div class="text-[9px] font-bold">${getDeadlineLabel(order.finalDeadline)}</div>` : ''}
+            </div>
+          </div>
+          <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
+             <span class="text-[10px] text-gray-400 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> Tgl: ${formatFullDate(order.entryDate)}</span>
+             <span class="text-[10px] font-bold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-full">${order.quantity || '-'}</span>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      toast.innerText = msg;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 3000);
+    }
+
+    window.onload = loadOrders;
+  </script>
+</body>
+</html>
