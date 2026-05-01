@@ -630,7 +630,7 @@ function showLoadingState(targetId) {
   let teksRekap = `*LIST ORDERAN ${namaBulanHeader}*\n`;
 
   rekapOrders.forEach((order, index) => {
-  let baris = `${index + 1}. ${order.customer} ${order.jobName} ${order.quantity ? 'x' + order.quantity : ''}`;[cite: 1]
+  let baris = `${index + 1}. ${order.customer} ${order.jobName} ${order.quantity ? 'x' + order.quantity : ''}`;[cite: 1];
     
     // Logika keterangan status pengerjaan
     if (['Desain', 'Revisi'].includes(order.status)) {
