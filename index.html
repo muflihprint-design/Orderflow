@@ -9,6 +9,20 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; }
+
+/* Skeleton Loading Animation */
+.skeleton {
+  background: #e5e7eb;
+  background-image: linear-gradient(90deg, #e5e7eb 0px, #f3f4f6 40px, #e5e7eb 80px);
+  background-size: 600px;
+  animation: shimmer 1.5s infinite linear;
+}
+
+@keyframes shimmer {
+  0% { background-position: -468px 0; }
+  100% { background-position: 468px 0; }
+}
+    
     
     /* Navigation Bar */
     .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-around; padding: 12px 0; z-index: 50; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
@@ -263,6 +277,24 @@
       return "";
     }
 
+function showLoadingState(targetId) {
+  const container = document.getElementById(targetId);
+  const skeletonHTML = `
+    <div class="order-card opacity-50">
+      <div class="flex justify-between items-start">
+        <div class="flex-1 space-y-2">
+          <div class="h-2 w-16 skeleton rounded"></div>
+          <div class="h-4 w-3/4 skeleton rounded"></div>
+          <div class="h-3 w-1/2 skeleton rounded"></div>
+        </div>
+        <div class="w-16 h-6 skeleton rounded-lg"></div>
+      </div>
+    </div>
+  `.repeat(3); // Tampilkan 3 kotak loading
+  
+  container.innerHTML = skeletonHTML;
+}
+    
     function switchTab(tabId) {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -297,24 +329,29 @@
     }
 
     async function loadOrders() {
-      if (isGoogleEnv()) {
-        google.script.run
-          .withSuccessHandler((data) => {
-            allOrders = data || [];
-            applyFilters();
-          })
-          .getOrdersFromSheet();
-      } else {
-        try {
-          const response = await fetch(`${WEB_APP_URL}?action=getOrders`);
-          const data = await response.json();
-          allOrders = data || [];
-          applyFilters();
-        } catch (err) {
-          showToast("Gagal memuat data.");
-        }
-      }
-    }
+  // Tampilkan animasi loading di kedua daftar
+  showLoadingState('order-list');
+  showLoadingState('completed-list');
+
+  if (typeof google !== 'undefined' && google.script && google.script.run) {
+    google.script.run
+      .withSuccessHandler((data) => {
+        allOrders = data || [];
+        applyFilters();
+      })
+      .getOrdersFromSheet();
+  } else {
+    // Simulasi delay jaringan (untuk testing)
+    setTimeout(() => {
+      // Data dummy untuk contoh preview
+      allOrders = [
+        { id: 'ORD-001', customer: 'Budi Store', jobName: 'Banner 3x1', status: 'Desain', priority: 'Urgent', entryDate: new Date(), finalDeadline: '2026-05-10' },
+        { id: 'ORD-002', customer: 'Sari Roti', jobName: 'Stiker Label', status: 'Produksi', priority: 'Normal', entryDate: new Date(), finalDeadline: '2026-05-15' }
+      ];
+      applyFilters();
+    }, 1500); 
+  }
+}
 
     async function handleFormSubmit(e) {
       e.preventDefault();
