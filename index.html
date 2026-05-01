@@ -274,7 +274,7 @@
 </div>
 
   <script>
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwoDl2N49A5lfIdSmcAE5PkupexaiDfSkr-bD6ach2SKbdmCp45cSuZjy_DkOXqZH9Bxg/exec';
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzg2XE64Q7yFFYxczqwR1uk-pKe9VKxXfnk5Fp0I9E80ao4mU50MSb3oQYGT-ooJBWQtg/exec';
     
     let allOrders = [];
     let currentFilter = 'Aktif';
@@ -502,35 +502,41 @@ function showLoadingState(targetId) {
       setTimeout(() => modal.classList.add('hidden'), 300);
     }
 
-    function confirmStatus(newStatus) {
+   async function confirmStatus(newStatus) {
   const stageDl = document.getElementById('edit-status-deadline').value;
   const finalDl = document.getElementById('edit-final-deadline').value;
 
-  // 1. Optimistic Update (Update UI secara instan agar terasa cepat)
+  // 1. Update UI Lokal (Optimistic)
   const orderIdx = allOrders.findIndex(o => o.id === selectedOrderId);
   if (orderIdx !== -1) {
     allOrders[orderIdx].status = newStatus;
     allOrders[orderIdx].statusDeadline = stageDl;
     allOrders[orderIdx].finalDeadline = finalDl;
   }
+  applyFilters();
+  closeStatusModal();
+  showToast("Menyimpan ke database...");
 
-  applyFilters(); // Render ulang list
-  closeStatusModal(); // Tutup modal
-  showToast("Memperbarui...");
+  // 2. Kirim ke Google Apps Script menggunakan Fetch
+  const url = `${WEB_APP_URL}?action=updateStatus` +
+              `&id=${encodeURIComponent(selectedOrderId)}` +
+              `&status=${encodeURIComponent(newStatus)}` +
+              `&statusDeadline=${encodeURIComponent(stageDl)}` +
+              `&finalDeadline=${encodeURIComponent(finalDl)}`;
 
-  // 2. Kirim ke Server (Google Sheets)
-  if (typeof google !== 'undefined' && google.script && google.script.run) {
-    google.script.run
-      .withSuccessHandler(() => {
-        showToast("Status Terupdate!");
-      })
-      .withFailureHandler((err) => {
-        showToast("Gagal simpan ke Sheets!");
-        console.error(err);
-      })
-      .updateOrderStatus(selectedOrderId, newStatus, stageDl, finalDl);
-  } else {
-    showToast("Mode Preview: Tersimpan lokal");
+  try {
+    const response = await fetch(url);
+    const result = await response.json();
+    
+    if (result.success) {
+      showToast("✓ Berhasil diperbarui!");
+      loadOrders(); // Refresh data
+    } else {
+      showToast("❌ Gagal: " + result.message);
+    }
+  } catch (err) {
+    console.error(err);
+    showToast("❌ Error koneksi ke server");
   }
 }
     
