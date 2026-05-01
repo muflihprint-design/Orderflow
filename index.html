@@ -726,9 +726,10 @@ function openDetail(id) {
       
       // KIRIM NOTIFIKASI KE TELEGRAM
       if (order) {
-        sendTelegramNotification(orderData);
+        // Kita gunakan fungsi khusus update status agar muncul info "Desain -> Produksi"
+        sendUpdateStatusNotification(order, oldStatus, newStatus);
       }
-      
+            
       loadOrders(); // Refresh data untuk memastikan sinkronisasi
     } else {
       showToast("❌ Gagal: " + (result.message || "Gagal simpan"));
