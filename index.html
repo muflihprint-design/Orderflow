@@ -856,7 +856,7 @@ function renderList(targetId, orders, showDeadline) {
 // FUNGSI NOTIFIKASI TELEGRAM
 function sendTelegramNotification(data) {
   if (allOrders.length === 0) {
-    showToast("Tidak ada data untuk direkap.");[cite: 1]
+    showToast("Tidak ada data untuk direkap.");
     return;
   }
 
@@ -868,19 +868,19 @@ function sendTelegramNotification(data) {
   
   const rekapOrders = allOrders.filter(order => {
     const tglSelesai = order.finalDeadline ? new Date(order.finalDeadline) : null;
-    if (order.status !== 'Selesai') return true;[cite: 1]
+    if (order.status !== 'Selesai') return true;
     if (order.status === 'Selesai' && tglSelesai) {
-      return tglSelesai.getMonth() === bulanIni && tglSelesai.getFullYear() === tahunIni;[cite: 1]
+      return tglSelesai.getMonth() === bulanIni && tglSelesai.getFullYear() === tahunIni;
     }
     return false;
   });
 
   if (rekapOrders.length === 0) {
-    showToast("Tidak ada antrian aktif.");[cite: 1]
+    showToast("Tidak ada antrian aktif.");
     return;
   }
 
-  rekapOrders.sort((a, b) => new Date(a.entryDate) - new Date(b.entryDate));[cite: 1]
+  rekapOrders.sort((a, b) => new Date(a.entryDate) - new Date(b.entryDate));
 
   // Update: Menghilangkan Revisi dan Kirim
   const stages = ['Desain', 'Cetak', 'Finishing', 'Packing'];
@@ -894,28 +894,28 @@ function sendTelegramNotification(data) {
     if (order.status === 'Selesai') {
       if (order.finalDeadline) {
         const tglFinal = new Date(order.finalDeadline).getDate();
-        baris += `, estimasi selesai pesanan tggl ${tglFinal} ✅`;[cite: 1]
+        baris += `, estimasi selesai pesanan tggl ${tglFinal} ✅`;
       } else {
         baris += ` ✅`;
       }
       teksRekap += `${baris}\n\n`; 
     } else {
       if (['Desain', 'Revisi'].includes(order.status)) {
-        baris += ` _mau didesainkan_`;[cite: 1]
+        baris += ` _mau didesainkan_`;
       } else {
-        baris += ` _mau dicetak_`;[cite: 1]
+        baris += ` _mau dicetak_`;
       }
 
       // Update: Menghilangkan centang pada estimasi tanggal tahap
       if (order.statusDeadline) {
         const tglTahap = new Date(order.statusDeadline).getDate();
         const statusSekarang = order.status.toLowerCase();
-        baris += `, estimasi selesai ${statusSekarang} tggl ${tglTahap}`;[cite: 1]
+        baris += `, estimasi selesai ${statusSekarang} tggl ${tglTahap}`;
       }
 
       if (order.finalDeadline) {
         const tglFinal = new Date(order.finalDeadline).getDate();
-        baris += `, estimasi selesai pesanan tggl ${tglFinal}`;[cite: 1]
+        baris += `, estimasi selesai pesanan tggl ${tglFinal}`;
       }
 
       // Visualisasi Tahapan Proses
@@ -924,40 +924,40 @@ function sendTelegramNotification(data) {
         let isDone = false;
         
         if (stage === 'Desain') {
-          // Centang desain jika status sudah Konfirmasi, Cetak, Finishing, Packing, atau Kirim[cite: 1]
-          isDone = !['Desain', 'Revisi'].includes(order.status);[cite: 1]
+          // Centang desain jika status sudah Konfirmasi, Cetak, Finishing, Packing, atau Kirim
+          isDone = !['Desain', 'Revisi'].includes(order.status);
         } else {
-          // Untuk tahapan lainnya, centang jika sudah melewati tahap tersebut[cite: 1]
+          // Untuk tahapan lainnya, centang jika sudah melewati tahap tersebut
           const currentIndex = stages.indexOf(order.status);
           const stageIndex = stages.indexOf(stage);
-          isDone = currentIndex > stageIndex && currentIndex !== -1;[cite: 1]
+          isDone = currentIndex > stageIndex && currentIndex !== -1;
         }
         
         return isDone ? `${stage}✅` : stage;
       }).join(', ');
 
-      teksRekap += `${baris}\n(${progressVisual})\n\n`;[cite: 1]
+      teksRekap += `${baris}\n(${progressVisual})\n\n`;
     }
   });
 
-  const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U';[cite: 1]
-  const chatId = '-5026846679';[cite: 1]
+  const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U';
+  const chatId = '-5026846679';
   
-  const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(teksRekap)}&parse_mode=Markdown`;[cite: 1]
+  const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(teksRekap)}&parse_mode=Markdown`;
 
-  showToast("Mengirim rekap ke Telegram...");[cite: 1]
+  showToast("Mengirim rekap ke Telegram...");
   
   fetch(url)
     .then(response => {
       if (response.ok) {
-        showToast("✓ Rekap terkirim ke Telegram!");[cite: 1]
+        showToast("✓ Rekap terkirim ke Telegram!");
       } else {
-        throw new Error("Gagal kirim");[cite: 1]
+        throw new Error("Gagal kirim");
       }
     })
     .catch(err => {
-      console.error(err);[cite: 1]
-      showToast("❌ Gagal kirim ke Telegram");[cite: 1]
+      console.error(err);
+      showToast("❌ Gagal kirim ke Telegram");
     });
 }
 
