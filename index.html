@@ -664,7 +664,7 @@ async function handleFormSubmit(e) {
       renderList('completed-list', filteredSelesai, false); // false = sembunyikan deadline
     }
 
-  function renderList(targetId, orders, showDeadline) {
+ function renderList(targetId, orders, showDeadline) {
   const listEl = document.getElementById(targetId);
   if (orders.length === 0) {
     listEl.innerHTML = `<div class="py-12 text-center text-gray-400 text-sm"><p>Tidak ada pesanan.</p></div>`;
@@ -703,7 +703,6 @@ async function handleFormSubmit(e) {
   `).join('');
   lucide.createIcons();
 }
-
     
     function showToast(msg) {
       const toast = document.getElementById("toast");
