@@ -214,39 +214,37 @@
     </div>
   </div>
 
-  <!-- Modal Update Status (GABUNGAN BARU) -->
-  <div id="status-modal" class="fixed inset-0 bg-black/60 z-[70] hidden flex items-end modal-overlay">
-    <div class="bg-white w-full rounded-t-[2.5rem] p-6 modal-content transform translate-y-full">
-      <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-8"></div>
-      <h3 class="text-xl font-bold mb-6">Update Deadline & Tahapan</h3>
-      
-      <div class="grid grid-cols-2 gap-4 mb-6">
-        <div class="p-3 bg-blue-50 rounded-2xl">
-          <label class="block text-[9px] font-bold text-blue-600 uppercase mb-1">Deadline Tahap</label>
-          <input type="date" id="edit-status-deadline" class="w-full bg-transparent border-none outline-none text-xs font-bold">
-        </div>
-        <div class="p-3 bg-red-50 rounded-2xl">
-          <label class="block text-[9px] font-bold text-red-600 uppercase mb-1">Deadline Final</label>
-          <input type="date" id="edit-final-deadline" class="w-full bg-transparent border-none outline-none text-xs font-bold">
-        </div>
+<!-- Modal Update Status (GABUNGAN BARU) -->
+<div id="status-modal" class="fixed inset-0 bg-black/60 z-[70] hidden flex items-end modal-overlay">
+  <div class="bg-white w-full rounded-t-[2.5rem] p-6 modal-content transform translate-y-full transition-transform duration-300">
+    <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-8"></div>
+    <h3 class="text-xl font-bold mb-6">Update Deadline & Tahapan</h3>
+    
+    <div class="grid grid-cols-2 gap-4 mb-6">
+      <div class="p-3 bg-blue-50 rounded-2xl border border-blue-100">
+        <label class="block text-[9px] font-bold text-blue-600 uppercase mb-1">Deadline Tahap</label>
+        <input type="date" id="edit-status-deadline" class="w-full bg-transparent border-none outline-none text-xs font-bold text-gray-800">
       </div>
-
-      <p class="text-[10px] font-bold text-gray-400 uppercase mb-3 ml-1">Pilih Tahapan Baru:</p>
-      <div class="grid grid-cols-3 gap-2 mb-8">
-        <button onclick="confirmStatus('Desain')" class="p-3 rounded-xl border font-bold text-blue-700 border-blue-100 bg-blue-50 text-[10px]">DESAIN</button>
-        <button onclick="confirmStatus('Revisi')" class="p-3 rounded-xl border font-bold text-pink-700 border-pink-100 bg-pink-50 text-[10px]">REVISI</button>
-        <button onclick="confirmStatus('Konfirmasi')" class="p-3 rounded-xl border font-bold text-indigo-700 border-indigo-100 bg-indigo-50 text-[10px]">KONFIRMASI</button>
-        <button onclick="confirmStatus('Produksi')" class="p-3 rounded-xl border font-bold text-yellow-700 border-yellow-100 bg-yellow-50 text-[10px]">PRODUKSI</button>
-        <button onclick="confirmStatus('Packing')" class="p-3 rounded-xl border font-bold text-purple-700 border-purple-100 bg-purple-50 text-[10px]">PACKING</button>
-        <button onclick="confirmStatus('Kirim')" class="p-3 rounded-xl border font-bold text-orange-700 border-orange-100 bg-orange-50 text-[10px]">KIRIM</button>
-        <button onclick="confirmStatus('Selesai')" class="p-3 rounded-xl border font-bold text-emerald-700 border-emerald-100 bg-emerald-50 text-[10px] col-span-3 mt-1 shadow-sm">✓ TANDAI SELESAI</button>
+      <div class="p-3 bg-red-50 rounded-2xl border border-red-100">
+        <label class="block text-[9px] font-bold text-red-600 uppercase mb-1">Deadline Final</label>
+        <input type="date" id="edit-final-deadline" class="w-full bg-transparent border-none outline-none text-xs font-bold text-gray-800">
       </div>
-      
-      <button onclick="closeStatusModal()" class="w-full py-2 text-gray-400 font-bold text-sm">BATAL</button>
     </div>
-  </div>
 
-  <div id="toast">Berhasil!</div>
+    <p class="text-[10px] font-bold text-gray-400 uppercase mb-3 ml-1">Pilih Tahapan Baru:</p>
+    <div id="status-buttons-grid" class="grid grid-cols-3 gap-2 mb-8">
+      <button onclick="confirmStatus('Desain')" class="p-3 rounded-xl border font-bold text-blue-700 border-blue-100 bg-blue-50 text-[10px] active:scale-95 transition-transform">DESAIN</button>
+      <button onclick="confirmStatus('Revisi')" class="p-3 rounded-xl border font-bold text-pink-700 border-pink-100 bg-pink-50 text-[10px] active:scale-95 transition-transform">REVISI</button>
+      <button onclick="confirmStatus('Konfirmasi')" class="p-3 rounded-xl border font-bold text-indigo-700 border-indigo-100 bg-indigo-50 text-[10px] active:scale-95 transition-transform">KONFIRMASI</button>
+      <button onclick="confirmStatus('Produksi')" class="p-3 rounded-xl border font-bold text-yellow-700 border-yellow-100 bg-yellow-50 text-[10px] active:scale-95 transition-transform">PRODUKSI</button>
+      <button onclick="confirmStatus('Packing')" class="p-3 rounded-xl border font-bold text-purple-700 border-purple-100 bg-purple-50 text-[10px] active:scale-95 transition-transform">PACKING</button>
+      <button onclick="confirmStatus('Kirim')" class="p-3 rounded-xl border font-bold text-orange-700 border-orange-100 bg-orange-50 text-[10px] active:scale-95 transition-transform">KIRIM</button>
+      <button onclick="confirmStatus('Selesai')" class="p-3 rounded-xl border font-bold text-emerald-700 border-emerald-100 bg-emerald-50 text-[10px] col-span-3 mt-1 shadow-sm active:scale-95 transition-transform">✓ TANDAI SELESAI</button>
+    </div>
+    
+    <button onclick="closeStatusModal()" class="w-full py-2 text-gray-400 font-bold text-sm">BATAL</button>
+  </div>
+</div>
 
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbys8piwRVzu8GlP99o59ujxoDjiOH9cLT9W_mnD8QQHkOKF6VDD3P24VvpGTQMSvFKYLQ/exec';
@@ -476,37 +474,37 @@ function showLoadingState(targetId) {
     }
 
     function confirmStatus(newStatus) {
-  let newStageDl = document.getElementById('edit-status-deadline').value;
-  let newFinalDl = document.getElementById('edit-final-deadline').value;
+  const stageDl = document.getElementById('edit-status-deadline').value;
+  const finalDl = document.getElementById('edit-final-deadline').value;
 
-  // Format tanggal agar konsisten
-  if (newStageDl) newStageDl += "T12:00:00";
-  if (newFinalDl) newFinalDl += "T12:00:00";
-
-  // --- STRATEGI OPTIMISTIC UI ---
-  // 1. Cari dan Update data di memori lokal (allOrders)
-  const idx = allOrders.findIndex(o => o.id === selectedOrderId);
-  if (idx !== -1) {
-    allOrders[idx].status = newStatus;
-    allOrders[idx].statusDeadline = newStageDl;
-    allOrders[idx].finalDeadline = newFinalDl;
+  // 1. Optimistic Update (Update UI secara instan agar terasa cepat)
+  const orderIdx = allOrders.findIndex(o => o.id === selectedOrderId);
+  if (orderIdx !== -1) {
+    allOrders[orderIdx].status = newStatus;
+    allOrders[orderIdx].statusDeadline = stageDl;
+    allOrders[orderIdx].finalDeadline = finalDl;
   }
 
-  // 2. Langsung perbarui tampilan & tutup modal (Tanpa menunggu server)
-  applyFilters(); 
-  closeStatusModal();
+  applyFilters(); // Render ulang list
+  closeStatusModal(); // Tutup modal
+  showToast("Memperbarui...");
 
-  // 3. Kirim ke Google Sheets di latar belakang
-  if (isGoogleEnv()) {
+  // 2. Kirim ke Server (Google Sheets)
+  if (typeof google !== 'undefined' && google.script && google.script.run) {
     google.script.run
       .withSuccessHandler(() => {
-        console.log("Data tersinkronisasi dengan Spreadsheet");
-        // Optional: loadOrders(); // Hanya jika ingin memastikan urutan data benar-benar sinkron
+        showToast("Status Terupdate!");
       })
-      .updateOrderStatus(selectedOrderId, newStatus, newStageDl, newFinalDl);
+      .withFailureHandler((err) => {
+        showToast("Gagal simpan ke Sheets!");
+        console.error(err);
+      })
+      .updateOrderStatus(selectedOrderId, newStatus, stageDl, finalDl);
+  } else {
+    showToast("Mode Preview: Tersimpan lokal");
   }
 }
-
+    
     function filterByStatus(status) {
       currentFilter = status;
       document.querySelectorAll('.filter-btn').forEach(btn => {
