@@ -690,9 +690,13 @@ function openDetail(id) {
       setTimeout(() => modal.classList.add('hidden'), 300);
     }
 
-   async function confirmStatus(newStatus) {
+ async function confirmStatus(newStatus) {
   const stageDl = document.getElementById('edit-status-deadline').value;
   const finalDl = document.getElementById('edit-final-deadline').value;
+
+  // Cari data pesanan sebelum update untuk keperluan notifikasi
+  const order = allOrders.find(o => o.id === selectedOrderId);
+  const oldStatus = order ? order.status : 'Tidak diketahui';
 
   // 1. Update UI Lokal (Optimistic)
   const orderIdx = allOrders.findIndex(o => o.id === selectedOrderId);
@@ -701,6 +705,7 @@ function openDetail(id) {
     allOrders[orderIdx].statusDeadline = stageDl;
     allOrders[orderIdx].finalDeadline = finalDl;
   }
+  
   applyFilters();
   closeStatusModal();
   showToast("Menyimpan ke database...");
@@ -718,9 +723,15 @@ function openDetail(id) {
     
     if (result.success) {
       showToast("✓ Berhasil diperbarui!");
-      loadOrders(); // Refresh data
+      
+      // KIRIM NOTIFIKASI KE TELEGRAM
+      if (order) {
+        sendTelegramNotification(orderData);
+      }
+      
+      loadOrders(); // Refresh data untuk memastikan sinkronisasi
     } else {
-      showToast("❌ Gagal: " + result.message);
+      showToast("❌ Gagal: " + (result.message || "Gagal simpan"));
     }
   } catch (err) {
     console.error(err);
