@@ -127,37 +127,17 @@
                  class="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl outline-none shadow-sm text-sm focus:ring-2 focus:ring-blue-500/20">
         </div>
         
-       <div class="filter-grid" id="status-filters">
-  <!-- Semua Pesanan Aktif (Kecuali Selesai) -->
-  <button onclick="filterByStatus('Aktif')" class="filter-btn active" data-status="Aktif">
-    Proses <span id="count-aktif" class="count-badge">0</span>
-  </button>
-
-  <!-- Tahapan Desain -->
-  <button onclick="filterByStatus('Desain')" class="filter-btn" data-status="Desain">
-    Desain <span id="count-desain" class="count-badge">0</span>
-  </button>
-
-  <!-- Tahapan Cetak (Baru) -->
-  <button onclick="filterByStatus('Cetak')" class="filter-btn" data-status="Cetak">
-    Cetak <span id="count-cetak" class="count-badge">0</span>
-  </button>
-
-  <!-- Tahapan Finishing (Baru) -->
-  <button onclick="filterByStatus('Finishing')" class="filter-btn" data-status="Finishing">
-    Finish <span id="count-finishing" class="count-badge">0</span>
-  </button>
-
-  <!-- Tahapan Pengiriman -->
-  <button onclick="filterByStatus('Kirim')" class="filter-btn" data-status="Kirim">
-    Kirim <span id="count-kirim" class="count-badge">0</span>
-  </button>
-
-  <!-- Pekerjaan yang Sudah Selesai (Dicentang) -->
-  <button onclick="filterByStatus('Selesai')" class="filter-btn border-emerald-200 text-emerald-700 bg-emerald-50" data-status="Selesai">
-    Selesai <span id="count-selesai" class="count-badge !bg-emerald-500">0</span>
-  </button>
-</div>
+        <div class="filter-grid" id="status-filters">
+          <button onclick="filterByStatus('Aktif')" class="filter-btn active" data-status="Aktif">
+            Semua <span id="count-aktif" class="count-badge">0</span>
+          </button>
+          <button onclick="filterByStatus('Desain')" class="filter-btn" data-status="Desain">Desain <span id="count-desain" class="count-badge">0</span></button>
+          <button onclick="filterByStatus('Revisi')" class="filter-btn" data-status="Revisi">Revisi <span id="count-revisi" class="count-badge">0</span></button>
+          <button onclick="filterByStatus('Konfirmasi')" class="filter-btn" data-status="Konfirmasi">Konf <span id="count-konfirmasi" class="count-badge">0</span></button>
+          <button onclick="filterByStatus('Produksi')" class="filter-btn" data-status="Produksi">Prod <span id="count-produksi" class="count-badge">0</span></button>
+          <button onclick="filterByStatus('Packing')" class="filter-btn" data-status="Packing">Pack <span id="count-packing" class="count-badge">0</span></button>
+          <button onclick="filterByStatus('Kirim')" class="filter-btn" data-status="Kirim">Kirim <span id="count-kirim" class="count-badge">0</span></button>
+        </div>
       </div>
       <div id="order-list" class="space-y-4"></div>
     </div>
@@ -239,19 +219,19 @@
       </div>
 
       <div class="grid grid-cols-2 gap-3">
-  <!-- Tanggal Selesai Desain -->
-  <div class="bg-blue-50 rounded-2xl p-3 border border-blue-100">
-    <label class="block text-[9px] font-black text-blue-600 uppercase mb-1">Selesai Desain</label>
-    <input type="date" name="statusDeadline" required 
-           class="w-full bg-transparent border-none outline-none text-xs font-bold text-gray-800">
-  </div>
-  <!-- Tanggal Selesai Keseluruhan -->
-  <div class="bg-red-50 rounded-2xl p-3 border border-red-100">
-    <label class="block text-[9px] font-black text-red-600 uppercase mb-1">Selesai Keseluruhan</label>
-    <input type="date" name="finalDeadline" required 
-           class="w-full bg-transparent border-none outline-none text-xs font-bold text-gray-800">
-  </div>
-</div>
+        <div>
+          <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Deadline Final</label>
+          <input type="date" name="finalDeadline" required 
+                 class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-xs">
+        </div>
+        <div class="bg-blue-600 rounded-2xl p-[2px]"> <!-- Highlight untuk target tahapan -->
+          <div class="bg-white rounded-[14px] p-3">
+            <label class="block text-[9px] font-black text-blue-600 uppercase mb-1">Target Tahapan</label>
+            <input type="date" name="statusDeadline" required 
+                   class="w-full bg-transparent border-none outline-none text-xs font-bold text-gray-800">
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- SECTION 4: CATATAN -->
@@ -282,120 +262,84 @@
   </main>
 
   <!-- Modal Detail -->
-  <!-- Modal Detail -->
-<div id="detail-modal" class="fixed inset-0 z-[60] hidden bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-  <div class="modal-content bg-white w-full max-w-lg rounded-t-[2rem] sm:rounded-[2rem] max-h-[90vh] overflow-hidden flex flex-col transform scale-95 opacity-0 transition-all duration-300">
-    <div class="p-6 overflow-y-auto">
-      <div class="flex justify-between items-start mb-6">
-        <div>
-          <span id="det-id" class="text-[10px] font-mono font-bold text-gray-400 block mb-1">ID-000</span>
-          <h2 id="det-customer" class="text-2xl font-black text-gray-900 leading-tight italic">Customer Name</h2>
-          <p id="det-job" class="text-blue-600 font-bold text-lg">Nama Kerjaan</p>
-        </div>
-        <button onclick="closeDetail()" class="p-2 bg-gray-100 rounded-full text-gray-400">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <div id="det-badges" class="flex gap-2 mb-6"></div>
-
-      <div class="grid grid-cols-2 gap-4 mb-6">
-        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-          <p class="text-[10px] text-gray-400 font-bold uppercase mb-1">Quantity</p>
-          <p id="det-qty" class="font-bold text-gray-800">-</p>
-        </div>
-        <a id="det-phone" href="#" target="_blank" class="bg-green-50 p-4 rounded-2xl flex flex-col border border-green-100">
-          <p class="text-[10px] text-green-600/50 font-bold uppercase mb-1">WhatsApp</p>
-          <span class="font-bold text-green-700 underline truncate">-</span>
-        </a>
-      </div>
-
-      <!-- Informasi Waktu (Diperbarui) -->
-      <div class="space-y-4 mb-6">
-        <!-- Tanggal Masuk -->
-        <div class="flex justify-between text-sm">
-          <span class="text-gray-500 font-medium text-[10px] uppercase">Tgl Masuk</span>
-          <span id="det-entry-date" class="font-bold text-gray-800">-</span>
-        </div>
-
-        <!-- Deadline Selesai Keseluruhan (Utama) -->
-        <div class="p-4 bg-red-50 rounded-2xl border border-red-100">
-          <div class="flex justify-between items-center">
-            <span class="text-red-600 font-black uppercase text-[10px] tracking-wider">Deadline Keseluruhan</span>
-            <div class="text-right">
-              <span id="det-final-date" class="text-lg font-black block text-red-700 leading-none">-</span>
-              <span id="det-final-label" class="text-[11px] block mt-1 font-black uppercase italic text-red-600"></span>
-            </div>
+  <div id="detail-modal" class="fixed inset-0 z-[60] hidden bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="modal-content bg-white w-full max-w-lg rounded-t-[2rem] sm:rounded-[2rem] max-h-[90vh] overflow-hidden flex flex-col transform scale-95 opacity-0 transition-all duration-300">
+      <div class="p-6 overflow-y-auto">
+        <div class="flex justify-between items-start mb-6">
+          <div>
+            <span id="det-id" class="text-[10px] font-mono font-bold text-gray-400 block mb-1">ID-000</span>
+            <h2 id="det-customer" class="text-2xl font-black text-gray-900 leading-tight italic">Customer Name</h2>
+            <p id="det-job" class="text-blue-600 font-bold text-lg">Nama Kerjaan</p>
           </div>
+          <button onclick="closeDetail()" class="p-2 bg-gray-100 rounded-full text-gray-400"><i data-lucide="x" class="w-5 h-5"></i></button>
         </div>
-
-        <!-- Deadline Selesai Desain (Sekunder) -->
-        <div class="p-4 bg-blue-50 rounded-2xl border border-blue-100">
-          <div class="flex justify-between items-center">
-            <span class="text-blue-600 font-black uppercase text-[10px] tracking-wider">Target Selesai Desain</span>
-            <div class="text-right">
-              <span id="det-status-date" class="font-bold block text-blue-800 leading-none">-</span>
-              <span id="det-status-label" class="text-[10px] block mt-1 font-medium text-blue-500"></span>
-            </div>
+        <div id="det-badges" class="flex gap-2 mb-6"></div>
+        <div class="grid grid-cols-2 gap-4 mb-6">
+          <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+            <p class="text-[10px] text-gray-400 font-bold uppercase mb-1">Quantity</p>
+            <p id="det-qty" class="font-bold text-gray-800">-</p>
           </div>
+          <a id="det-phone" href="#" target="_blank" class="bg-green-50 p-4 rounded-2xl flex flex-col border border-green-100">
+            <p class="text-[10px] text-green-600/50 font-bold uppercase mb-1">WhatsApp</p>
+            <span class="font-bold text-green-700 underline truncate">-</span>
+          </a>
+        </div>
+        <div class="space-y-4 mb-6">
+           <div id="det-entry" class="flex justify-between text-sm"><span class="text-gray-500 font-medium">Tgl Masuk</span><span class="font-bold">-</span></div>
+           <div id="det-final" class="flex justify-between text-sm">
+             <span class="text-gray-500 font-medium">Deadline Final</span>
+             <div class="text-right">
+               <span class="font-bold block" id="det-final-date">-</span>
+               <span id="det-final-label" class="text-[10px] block mt-1"></span>
+             </div>
+           </div>
+        </div>
+        <div class="mb-6">
+          <p class="text-[10px] text-gray-400 font-bold uppercase mb-2">Catatan Pesanan</p>
+          <div id="det-desc" class="bg-gray-50 p-4 rounded-2xl text-sm text-gray-600 italic border border-gray-100"></div>
         </div>
       </div>
-
-      <div class="mb-6">
-        <p class="text-[10px] text-gray-400 font-bold uppercase mb-2 ml-1">Catatan Pesanan</p>
-        <div id="det-desc" class="bg-gray-50 p-4 rounded-2xl text-sm text-gray-600 italic border border-gray-100"></div>
+      <div class="p-6 bg-white border-t border-gray-100 grid grid-cols-2 gap-3">
+        <button onclick="openStatusModalFromDetail()" class="py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-transform">Update Status</button>
+        <button onclick="closeDetail()" class="py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold">Tutup</button>
       </div>
-    </div>
-
-    <!-- Footer Tombol -->
-    <div class="p-6 bg-white border-t border-gray-100 grid grid-cols-2 gap-3">
-      <button onclick="openStatusModalFromDetail()" class="py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-transform flex justify-center items-center gap-2">
-        <i data-lucide="refresh-cw" class="w-4 h-4"></i> Update Status
-      </button>
-      <button onclick="closeDetail()" class="py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold active:scale-95 transition-transform">Tutup</button>
     </div>
   </div>
-</div>
-  
+
 <!-- Modal Update Status (GABUNGAN BARU) -->
 <div id="status-modal" class="fixed inset-0 bg-black/60 z-[70] hidden flex items-end modal-overlay">
   <div class="bg-white w-full rounded-t-[2.5rem] p-6 modal-content transform translate-y-full transition-transform duration-300">
     <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-8"></div>
-    <h3 class="text-xl font-bold mb-6 italic tracking-tight">Update Progres Pesanan</h3>
+    <h3 class="text-xl font-bold mb-6">Update Deadline & Tahapan</h3>
     
-    <!-- Input Tanggal Terfokus (Sesuai Permintaan Baru) -->
     <div class="grid grid-cols-2 gap-4 mb-6">
       <div class="p-3 bg-blue-50 rounded-2xl border border-blue-100">
-        <label class="block text-[9px] font-black text-blue-600 uppercase mb-1">Target Selesai Desain</label>
+        <label class="block text-[9px] font-bold text-blue-600 uppercase mb-1">Deadline Tahap</label>
         <input type="date" id="edit-status-deadline" class="w-full bg-transparent border-none outline-none text-xs font-bold text-gray-800">
       </div>
       <div class="p-3 bg-red-50 rounded-2xl border border-red-100">
-        <label class="block text-[9px] font-black text-red-600 uppercase mb-1">Deadline Keseluruhan</label>
+        <label class="block text-[9px] font-bold text-red-600 uppercase mb-1">Deadline Final</label>
         <input type="date" id="edit-final-deadline" class="w-full bg-transparent border-none outline-none text-xs font-bold text-gray-800">
       </div>
     </div>
 
-    <p class="text-[10px] font-black text-gray-400 uppercase mb-3 ml-1 tracking-widest">Pilih Tahapan Progres:</p>
-    
-    <!-- Grid Tombol dengan Tahapan Cetak & Finishing (Versi Baru) -->
-    <div id="status-buttons-grid" class="grid grid-cols-2 gap-2 mb-8">
-      <button onclick="confirmStatus('Desain')" class="p-3 rounded-xl border font-bold text-blue-700 border-blue-100 bg-blue-50 text-[10px] active:scale-95 transition-transform">🎨 DESAIN</button>
-      <button onclick="confirmStatus('Cetak')" class="p-3 rounded-xl border font-bold text-orange-700 border-orange-100 bg-orange-50 text-[10px] active:scale-95 transition-transform">🖨️ CETAK</button>
-      <button onclick="confirmStatus('Finishing')" class="p-3 rounded-xl border font-bold text-purple-700 border-purple-100 bg-purple-50 text-[10px] active:scale-95 transition-transform">✂️ FINISHING</button>
-      <button onclick="confirmStatus('Kirim')" class="p-3 rounded-xl border font-bold text-gray-700 border-gray-100 bg-gray-50 text-[10px] active:scale-95 transition-transform">🚚 KIRIM</button>
-      
-      <!-- Metode Centang Selesai (Full Width) -->
-      <button onclick="confirmStatus('Selesai')" class="p-4 rounded-2xl border-2 font-black text-emerald-700 border-emerald-200 bg-emerald-50 text-[11px] col-span-2 mt-2 shadow-lg shadow-emerald-100 active:scale-95 transition-transform flex justify-center items-center gap-2">
-        <i data-lucide="check-circle-2" class="w-5 h-5"></i> ✓ TANDAI SELESAI (CENTANG)
-      </button>
+    <p class="text-[10px] font-bold text-gray-400 uppercase mb-3 ml-1">Pilih Tahapan Baru:</p>
+    <div id="status-buttons-grid" class="grid grid-cols-3 gap-2 mb-8">
+      <button onclick="confirmStatus('Desain')" class="p-3 rounded-xl border font-bold text-blue-700 border-blue-100 bg-blue-50 text-[10px] active:scale-95 transition-transform">DESAIN</button>
+      <button onclick="confirmStatus('Revisi')" class="p-3 rounded-xl border font-bold text-pink-700 border-pink-100 bg-pink-50 text-[10px] active:scale-95 transition-transform">REVISI</button>
+      <button onclick="confirmStatus('Konfirmasi')" class="p-3 rounded-xl border font-bold text-indigo-700 border-indigo-100 bg-indigo-50 text-[10px] active:scale-95 transition-transform">KONFIRMASI</button>
+      <button onclick="confirmStatus('Produksi')" class="p-3 rounded-xl border font-bold text-yellow-700 border-yellow-100 bg-yellow-50 text-[10px] active:scale-95 transition-transform">PRODUKSI</button>
+      <button onclick="confirmStatus('Packing')" class="p-3 rounded-xl border font-bold text-purple-700 border-purple-100 bg-purple-50 text-[10px] active:scale-95 transition-transform">PACKING</button>
+      <button onclick="confirmStatus('Kirim')" class="p-3 rounded-xl border font-bold text-orange-700 border-orange-100 bg-orange-50 text-[10px] active:scale-95 transition-transform">KIRIM</button>
+      <button onclick="confirmStatus('Selesai')" class="p-3 rounded-xl border font-bold text-emerald-700 border-emerald-100 bg-emerald-50 text-[10px] col-span-3 mt-1 shadow-sm active:scale-95 transition-transform">✓ TANDAI SELESAI</button>
     </div>
     
-    <button onclick="closeStatusModal()" class="w-full py-4 text-gray-400 font-bold text-sm hover:text-gray-600 transition-colors">BATAL</button>
+    <button onclick="closeStatusModal()" class="w-full py-2 text-gray-400 font-bold text-sm">BATAL</button>
   </div>
 </div>
-  
+
   <script>
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyLyaOSlLUSOpkaX7o5hjFYGoBf8-WRglWvjkE3dJOPyb9HG43i18ijXnFJB2tugcXnHw/exec';
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzRpZcdPaqFZj9vxYTNqQJwuAogZHaG_OZFDB6DGGsDNFV42Uhz6JzF__7-HQqoHvE1_g/exec';
     
     let allOrders = [];
     let currentFilter = 'Aktif';
@@ -511,26 +455,19 @@ function showLoadingState(targetId) {
 async function handleFormSubmit(e) {
   e.preventDefault();
   
-  // 1. Ambil elemen tombol & Form Data
+  // 1. Kunci tombol dan beri loading
   const btn = document.getElementById('submit-btn');
   const originalContent = btn.innerHTML;
-  const formData = new FormData(e.target);
-
-  // 2. Validasi Input (Cegah data kosong masuk ke Sheet)
-  if (!formData.get('customer') || !formData.get('jobName')) {
-    showToast("⚠️ Nama Pelanggan & Pekerjaan wajib diisi!");
-    return;
-  }
-
-  // 3. Visual Loading
   btn.disabled = true;
   btn.classList.add('opacity-70', 'cursor-not-allowed');
   btn.innerHTML = '<i class="animate-spin mr-2" data-lucide="loader-2"></i> MENYIMPAN...';
   if (window.lucide) lucide.createIcons();
+
+  const formData = new FormData(e.target);
   
-  // 4. Siapkan data pesanan (Struktur objek diperbaiki agar tidak menyebabkan SyntaxError)
+  // 2. Siapkan data pesanan
   const orderData = {
-    action: 'addNewOrder',
+    action: 'addNewOrder', 
     id: 'ORD-' + Date.now().toString().slice(-6),
     customer: formData.get('customer'),
     phone: formData.get('phone'),
@@ -540,38 +477,35 @@ async function handleFormSubmit(e) {
     status: formData.get('status') || 'Desain',
     description: formData.get('description'),
     finalDeadline: formData.get('finalDeadline'),
-    statusDeadline: formData.get('statusDeadline')
+    statusDeadline: formData.get('statusDeadline') 
   };
 
   try {
-    // 5. Kirim via POST ke Apps Script
-    const response = await fetch(WEB_APP_URL, {
-      method: 'POST',
-      mode: 'no-cors', // Tambahkan ini jika Apps Script tidak mengembalikan CORS header
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(orderData)
-    });
+    // 3. Kirim via Fetch API ke WEB_APP_URL
+    const queryParams = new URLSearchParams(orderData).toString();
+    const response = await fetch(`${WEB_APP_URL}?${queryParams}`);
     
-    // Catatan: Jika menggunakan 'no-cors', response.ok mungkin akan bernilai false 
-    // meskipun data masuk. Untuk Apps Script, disarankan mengecek hasil lewat loadOrders.
-
-    showToast("✓ Pesanan Diproses!");
+    if (!response.ok) throw new Error('Network response was not ok');
     
-    // 6. Kirim notifikasi Telegram secara asinkron agar tidak menghambat UI
-    sendTelegramNotification(orderData);
+    const result = await response.json();
 
-    // 7. Reset & Refresh
-    e.target.reset();
-    if (typeof loadOrders === "function") loadOrders(); 
-    if (typeof switchTab === "function") switchTab('antrian');
+    if (result.success) {
+      showToast("✓ Pesanan Tersimpan!");
+      
+      // 4. KIRIM NOTIFIKASI KE TELEGRAM (Otomatis)
+      sendTelegramNotification(orderData);
 
+      e.target.reset();
+      loadOrders(); 
+      switchTab('antrian');
+    } else {
+      showToast("❌ Gagal: " + (result.error || "Gagal simpan"));
+    }
   } catch (err) {
-    console.error("Error Detail:", err);
-    showToast("❌ Terjadi kesalahan koneksi");
+    console.error(err);
+    showToast("❌ Gagal terhubung ke server");
   } finally {
-    // 8. Kembalikan status tombol
+    // 5. Buka kunci tombol kembali
     btn.disabled = false;
     btn.classList.remove('opacity-70', 'cursor-not-allowed');
     btn.innerHTML = originalContent;
@@ -857,56 +791,43 @@ function renderList(targetId, orders, showDeadline) {
     return;
   }
   
-  listEl.innerHTML = orders.map(order => {
-    const isSelesai = order.status === 'Selesai';[cite: 1]
-    
-    return `
-      <div onclick="openDetail('${order.id}')" 
-           class="order-card priority-${(order.priority || 'normal').toLowerCase().replace(' ', '-')} shadow-sm transition-all ${isSelesai ? 'opacity-80 grayscale-[0.3]' : ''}">
-        
-        <div class="flex justify-between items-start gap-4">
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-1">
-              <p class="text-[9px] text-gray-400 font-mono font-bold">${order.id}</p>
-              ${isSelesai ? '<span class="bg-emerald-500 text-white text-[8px] px-1.5 py-0.5 rounded-full font-black flex items-center gap-0.5"><i data-lucide="check-check" class="w-2.5 h-2.5"></i> DONE</span>' : ''}
-            </div>
-            <h3 class="font-bold text-gray-900 leading-tight truncate ${isSelesai ? 'line-through text-gray-500' : ''}">${order.customer}</h3>
-            <p class="text-xs text-blue-600 font-bold truncate">${order.jobname || order.jobName}</p>
-            
-            <!-- Deadline Tahap (Sekunder) -->
-            ${showDeadline && order.statusDeadline && !isSelesai ? `
-              <div class="mt-1 flex items-center gap-1">
-                <span class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter italic">Target ${order.status}:</span>
-                <span class="text-[9px] font-black text-gray-600">${getDeadlineLabel(order.statusDeadline)}</span>
-              </div>
-            ` : ''}
-          </div>
+  listEl.innerHTML = orders.map(order => `
+    <div onclick="openDetail('${order.id}')" class="order-card priority-${(order.priority || 'normal').toLowerCase().replace(' ', '-')} shadow-sm">
+      <div class="flex justify-between items-start gap-4">
+        <div class="flex-1 min-w-0">
+          <p class="text-[9px] text-gray-400 font-mono font-bold mb-1">${order.id}</p>
+          <h3 class="font-bold text-gray-900 leading-tight truncate">${order.customer}</h3>
+          <p class="text-xs text-blue-600 font-bold truncate">${order.jobname || order.jobName}</p>
           
-          <div class="text-right shrink-0">
-            <span class="status-badge block mb-1 ${getStatusColor(order.status)}">${order.status.toUpperCase()}</span>
-            
-            <!-- Deadline Final -->
-            ${showDeadline ? `
-              <div class="text-[11px] font-black uppercase italic leading-tight ${isSelesai ? 'text-gray-400 line-through' : 'text-red-600'}">
-                ${isSelesai ? 'CLOSED' : `Final: ${getDeadlineLabel(order.finalDeadline)}`}
-              </div>
-            ` : ''}
-          </div>
+          <!-- Deadline Tahap (Sekunder di bawah nama pekerjaan) -->
+          ${showDeadline && order.statusDeadline ? `
+            <div class="mt-1 flex items-center gap-1">
+              <span class="text-[9px] font-bold text-gray-400 uppercase">Target ${order.status}:</span>
+              <span class="text-[9px] font-black text-gray-600">${getDeadlineLabel(order.statusDeadline)}</span>
+            </div>
+          ` : ''}
         </div>
         
-        <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
-           <span class="text-[10px] text-gray-400 flex items-center gap-1">
-             <i data-lucide="${isSelesai ? 'check-circle' : 'clock'}" class="w-3 h-3"></i> 
-             Tgl Masuk: ${formatFullDate(order.entryDate)}
-           </span>
-           <span class="text-[10px] font-bold ${isSelesai ? 'text-gray-400 bg-gray-50' : 'text-gray-700 bg-gray-100'} px-2 py-0.5 rounded-full">${order.quantity || '-'}</span>
+        <div class="text-right shrink-0">
+          <span class="status-badge block mb-1 ${getStatusColor(order.status)}">${order.status}</span>
+          
+          <!-- Deadline Final (Utama - Ukuran font diperbesar & Warna Merah) -->
+          ${showDeadline ? `
+            <div class="text-[11px] font-black text-red-600 uppercase italic leading-tight">
+              Final: ${getDeadlineLabel(order.finalDeadline)}
+            </div>
+          ` : ''}
         </div>
       </div>
-    `;
-  }).join('');
+      
+      <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
+         <span class="text-[10px] text-gray-400 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> Tgl: ${formatFullDate(order.entryDate)}</span>
+         <span class="text-[10px] font-bold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-full">${order.quantity || '-'}</span>
+      </div>
+    </div>
+  `).join('');
   lucide.createIcons();
 }
-    
     
     function showToast(msg) {
       const toast = document.getElementById("toast");
