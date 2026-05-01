@@ -141,10 +141,10 @@
       </div>
       <div id="order-list" class="space-y-4"></div>
     </div>
-
-    <!-- PAGE: TAMBAH -->
-   <!-- PAGE: TAMBAH -->
-<div id="page-tambah" class="page p-6">
+ 
+<!-- PAGE: TAMBAH -->
+<!-- Menambahkan pb-32 agar konten tidak tertutup bottom navigation -->
+<div id="page-tambah" class="page p-6 pb-32">
   <h2 class="text-2xl font-black text-gray-900 mb-6 italic">Pesanan Baru</h2>
   <form id="add-order-form" onsubmit="handleFormSubmit(event)" class="space-y-5">
     <div>
@@ -188,19 +188,20 @@
     </div>
 
     <div>
-    <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Status Awal Pesanan</label>
-    <select name="status" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 appearance-none">
-      <option value="Desain" selected>🎨 Desain</option>
-      <option value="Produksi">⏳ Produksi</option>
-      <option value="Kirim">🖨️ Kirim</option>
-    </select>
-  </div>
+      <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Status Awal Pesanan</label>
+      <select name="status" class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 appearance-none">
+        <option value="Desain" selected>🎨 Desain</option>
+        <option value="Produksi">⏳ Produksi</option>
+        <option value="Kirim">🖨️ Kirim</option>
+      </select>
+    </div>
 
     <div>
       <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Catatan</label>
       <textarea name="description" rows="3" placeholder="Detail bahan, finishing, dll..." class="w-full p-4 bg-white border-0 rounded-2xl shadow-sm outline-none ring-1 ring-gray-200"></textarea>
     </div>
 
+    <!-- Tombol Simpan -->
     <button type="submit" id="submit-btn" class="w-full py-5 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200 active:scale-95 transition-transform flex justify-center items-center gap-2">
       <i data-lucide="send" class="w-5 h-5"></i> SIMPAN PESANAN
     </button>
@@ -295,7 +296,7 @@
 </div>
 
   <script>
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwHIgb81kNRym5kvLNEZrlAt7UVMr4MRyarG03dEvbGK4BML4Im8-cF_Bcnan9tfa3Pkg/exec';
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzRpZcdPaqFZj9vxYTNqQJwuAogZHaG_OZFDB6DGGsDNFV42Uhz6JzF__7-HQqoHvE1_g/exec';
     
     let allOrders = [];
     let currentFilter = 'Aktif';
