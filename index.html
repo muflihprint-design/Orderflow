@@ -514,14 +514,20 @@ async function handleFormSubmit(e) {
   // 1. Kunci tombol dan beri loading
   const btn = document.getElementById('submit-btn');
   const originalContent = btn.innerHTML;
+  
+  // Validasi sederhana sebelum kirim
+  const formData = new FormData(e.target);
+  if (!formData.get('customer') || !formData.get('jobName')) {
+    showToast("⚠️ Nama Pelanggan & Pekerjaan wajib diisi!");
+    return;
+  }
+
   btn.disabled = true;
   btn.classList.add('opacity-70', 'cursor-not-allowed');
   btn.innerHTML = '<i class="animate-spin mr-2" data-lucide="loader-2"></i> MENYIMPAN...';
   if (window.lucide) lucide.createIcons();
-
-  const formData = new FormData(e.target);
   
-  // 2. Siapkan data pesanan
+  // 2. Siapkan data pesanan (Gunakan struktur array of object jika dibutuhkan backend Anda)
   const orderData = {
     action: 'addNewOrder', 
     id: 'ORD-' + Date.now().toString().slice(-6),
@@ -537,9 +543,11 @@ async function handleFormSubmit(e) {
   };
 
   try {
-    // 3. Kirim via Fetch API ke WEB_APP_URL
-    const queryParams = new URLSearchParams(orderData).toString();
-    const response = await fetch(`${WEB_APP_URL}?${queryParams}`);
+    // 3. Gunakan POST untuk keamanan data yang lebih baik
+    const response = await fetch(WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify(orderData)
+    });
     
     if (!response.ok) throw new Error('Network response was not ok');
     
@@ -548,17 +556,17 @@ async function handleFormSubmit(e) {
     if (result.success) {
       showToast("✓ Pesanan Tersimpan!");
       
-      // 4. KIRIM NOTIFIKASI KE TELEGRAM (Otomatis)
+      // 4. Kirim notifikasi Telegram
       sendTelegramNotification(orderData);
 
       e.target.reset();
-      loadOrders(); 
-      switchTab('antrian');
+      if (typeof loadOrders === "function") loadOrders(); 
+      if (typeof switchTab === "function") switchTab('antrian');
     } else {
       showToast("❌ Gagal: " + (result.error || "Gagal simpan"));
     }
   } catch (err) {
-    console.error(err);
+    console.error("Error Detail:", err);
     showToast("❌ Gagal terhubung ke server");
   } finally {
     // 5. Buka kunci tombol kembali
