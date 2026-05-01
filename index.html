@@ -94,7 +94,7 @@
   top: 14px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 7px;
+  font-size: 6.5px; /* Sedikit dikecilkan untuk 7 tahapan */
   font-weight: 800;
   color: #9ca3af;
   white-space: nowrap;
@@ -856,20 +856,21 @@ function renderList(targetId, orders, showDeadline) {
     return;
   }
 
-  // Definisi urutan proses
-  const stages = ['Desain', 'Revisi', 'Konfirmasi', 'Produksi', 'Packing', 'Kirim', 'Selesai'];
+  // Tahapan baru sesuai permintaan Anda (Selesai dihapus dari tracker)
+  const stages = ['Desain', 'Revisi', 'Konfirmasi', 'Cetak', 'Finishing', 'Packing', 'Kirim'];
 
   listEl.innerHTML = orders.map(order => {
+    // Mencari posisi status saat ini
     const currentIndex = stages.indexOf(order.status);
     
-    // Generate HTML untuk Progress Tracker
     const progressHTML = `
       <div class="progress-container mb-6">
         <div class="progress-line"></div>
         ${stages.map((stage, index) => {
           let statusClass = '';
-          if (index < currentIndex) statusClass = 'completed';
-          else if (index === currentIndex) statusClass = 'current';
+          // Logika Warna: Biru jika sudah lewat, Merah jika sedang berjalan[cite: 1]
+          if (index < currentIndex) statusClass = 'completed'; 
+          else if (index === currentIndex) statusClass = 'current'; 
           
           return `
             <div class="progress-step ${statusClass}">
@@ -899,7 +900,7 @@ function renderList(targetId, orders, showDeadline) {
           </div>
         </div>
 
-        <!-- Progress Tracker Baru -->
+        <!-- Progress Tracker: 7 Tahapan Aktif -->
         ${progressHTML}
         
         <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
