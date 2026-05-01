@@ -882,52 +882,56 @@ function sendTelegramNotification(data) {
 
   rekapOrders.sort((a, b) => new Date(a.entryDate) - new Date(b.entryDate));
 
-  // Urutan tahapan proses (Tanpa Konfirmasi)
   const stages = ['Desain', 'Revisi', 'Cetak', 'Finishing', 'Packing', 'Kirim'];
 
   let teksRekap = `📝 *LIST ORDERAN ${namaBulanHeader}*\n`;
   teksRekap += `--------------------------\n`;
 
   rekapOrders.forEach((order, index) => {
+    // 1. Bagian Utama: Nama Customer, Pekerjaan, dan Jumlah
     let baris = `${index + 1}. *${order.customer}*: ${order.jobName} ${order.quantity ? 'x' + order.quantity : ''}`;
-    
-    // Status keterangan singkat
-    if (['Desain', 'Revisi'].includes(order.status)) {
-      baris += ` _mau didesainkan_`;
+
+    if (order.status === 'Selesai') {
+      // 2a. FORMAT KHUSUS UNTUK ORDERAN SELESAI
+      if (order.finalDeadline) {
+        const tglFinal = new Date(order.finalDeadline).getDate();
+        baris += `, estimasi selesai pesanan tggl ${tglFinal} ✅`;
+      } else {
+        baris += ` ✅`;
+      }
+      teksRekap += `${baris}\n\n`; // Langsung cetak baris tanpa status/proses visual
     } else {
-      baris += ` _mau dicetak_`;
+      // 2b. FORMAT UNTUK ORDERAN YANG MASIH JALAN
+      
+      // Tambahkan keterangan mau didesainkan/dicetak
+      if (['Desain', 'Revisi'].includes(order.status)) {
+        baris += ` _mau didesainkan_`;
+      } else {
+        baris += ` _mau dicetak_`;
+      }
+
+      // Estimasi Tahap Berjalan
+      if (order.statusDeadline) {
+        const tglDesain = new Date(order.statusDeadline).getDate();
+        const statusSekarang = order.status.toLowerCase();
+        const sudahLewatDesain = !['Desain', 'Revisi'].includes(order.status) ? '✅' : ''; 
+        baris += `, estimasi selesai ${statusSekarang} tggl ${tglDesain}${sudahLewatDesain}`;
+      }
+
+      // Estimasi Final
+      if (order.finalDeadline) {
+        const tglFinal = new Date(order.finalDeadline).getDate();
+        baris += `, estimasi selesai pesanan tggl ${tglFinal}`;
+      }
+
+      // Visualisasi Tahapan Proses
+      const currentIndex = stages.indexOf(order.status);
+      const progressVisual = stages.map((stage, idx) => {
+        return idx < currentIndex ? `${stage}✅` : stage;
+      }).join(', ');
+
+      teksRekap += `${baris}\n(${progressVisual})\n\n`;
     }
-
-    // Info Estimasi Tanggal
- if (order.statusDeadline) {
-      const tglDesain = new Date(order.statusDeadline).getDate();
-      
-      // Mengambil status saat ini dalam huruf kecil agar rapi di dalam kalimat
-      const statusSekarang = order.status.toLowerCase();
-      
-      // Memberikan centang jika status sudah bukan lagi Desain atau Revisi
-      const sudahLewatDesain = !['Desain', 'Revisi'].includes(order.status) ? '✅' : ''; 
-      
-      baris += `, estimasi selesai ${statusSekarang} tggl ${tglDesain}${sudahLewatDesain}`;
-    }
-
-    if (order.finalDeadline) {
-      const tglFinal = new Date(order.finalDeadline).getDate();
-      
-      // Memberikan centang hanya jika status benar-benar 'Selesai'
-      const statusSelesai = order.status === 'Selesai' ? '✅' : '';
-      
-      baris += `, estimasi selesai pesanan tggl ${tglFinal}${statusSelesai}`;
-    }
-
-    // Generate Visualisasi Proses (Desain✅, Revisi✅, Cetak, dst)
-    const currentIndex = stages.indexOf(order.status);
-    const progressVisual = stages.map((stage, idx) => {
-      // Jika index stage kurang dari index status saat ini, berarti sudah lewat
-      return idx < currentIndex ? `${stage}✅` : stage;
-    }).join(', ');
-
-    teksRekap += `${baris}\n(${progressVisual})\n\n`;
   });
 
   const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U';
