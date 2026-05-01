@@ -328,31 +328,40 @@ function showLoadingState(targetId) {
       }
     }
 
-    async function loadOrders() {
-  // Tampilkan animasi loading di kedua daftar
+   async function loadOrders() {
+  // Tampilkan animasi loading di kedua daftar saat mulai memuat
   showLoadingState('order-list');
   showLoadingState('completed-list');
 
   if (typeof google !== 'undefined' && google.script && google.script.run) {
+    // Jalankan jika berada di lingkungan Google Apps Script
     google.script.run
       .withSuccessHandler((data) => {
         allOrders = data || [];
         applyFilters();
       })
+      .withFailureHandler((err) => {
+        showToast("Gagal memuat data dari server.");
+        console.error(err);
+      })
       .getOrdersFromSheet();
   } else {
-    // Simulasi delay jaringan (untuk testing)
-    setTimeout(() => {
-      // Data dummy untuk contoh preview
-      allOrders = [
-        { id: 'ORD-001', customer: 'Budi Store', jobName: 'Banner 3x1', status: 'Desain', priority: 'Urgent', entryDate: new Date(), finalDeadline: '2026-05-10' },
-        { id: 'ORD-002', customer: 'Sari Roti', jobName: 'Stiker Label', status: 'Produksi', priority: 'Normal', entryDate: new Date(), finalDeadline: '2026-05-15' }
-      ];
+    // Jalankan Fetch API jika menggunakan server web biasa
+    try {
+      const response = await fetch(`${WEB_APP_URL}?action=getOrders`);
+      const data = await response.json();
+      allOrders = data || [];
       applyFilters();
-    }, 1500); 
+    } catch (err) {
+      showToast("Gagal terhubung ke database.");
+      // Jika gagal, kosongkan daftar agar tidak terus-menerus loading
+      document.getElementById('order-list').innerHTML = 
+        `<div class="py-12 text-center text-gray-400 text-sm">Gagal memuat data.</div>`;
+      document.getElementById('completed-list').innerHTML = "";
+    }
   }
 }
-
+    
     async function handleFormSubmit(e) {
       e.preventDefault();
       const btn = document.getElementById('submit-btn');
