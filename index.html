@@ -61,17 +61,24 @@
 <body>
 
   <!-- Header -->
-  <header class="bg-white border-b sticky top-0 z-40 px-4 py-3 flex justify-between items-center shadow-sm">
-    <div class="flex items-center gap-2">
-      <div class="p-1.5 bg-blue-600 rounded-lg text-white">
-        <i data-lucide="printer" class="w-5 h-5"></i>
-      </div>
-      <h1 class="font-bold text-base text-gray-800 leading-none">OrderFlow <span class="text-blue-600">Pro</span></h1>
+<header class="bg-white border-b sticky top-0 z-40 px-4 py-3 flex justify-between items-center shadow-sm">
+  <div class="flex items-center gap-2">
+    <div class="p-1.5 bg-blue-600 rounded-lg text-white">
+      <i data-lucide="printer" class="w-5 h-5"></i>
     </div>
-    <div class="flex items-center gap-3">
-       <button onclick="loadOrders()" class="p-2 text-gray-400 active:text-blue-600"><i data-lucide="rotate-cw" class="w-5 h-5"></i></button>
-    </div>
-  </header>
+    <h1 class="font-bold text-base text-gray-800 leading-none">OrderFlow <span class="text-blue-600">Pro</span></h1>
+  </div>
+  <div class="flex items-center gap-3">
+     <!-- Tombol Rekap WA -->
+     <button onclick="generateWARekap()" class="p-2 text-green-600 active:scale-95 transition-transform" title="Rekap ke WhatsApp">
+       <i data-lucide="share-2" class="w-5 h-5"></i>
+     </button>
+     <!-- Tombol Refresh -->
+     <button onclick="loadOrders()" class="p-2 text-gray-400 active:text-blue-600">
+       <i data-lucide="rotate-cw" class="w-5 h-5"></i>
+     </button>
+  </div>
+</header>
 
   <!-- Navigation -->
   <nav class="nav-bar">
@@ -584,6 +591,78 @@ function showLoadingState(targetId) {
       toast.classList.add("show");
       setTimeout(() => toast.classList.remove("show"), 3000);
     }
+
+    function generateWARekap() {
+  if (allOrders.length === 0) {
+    showToast("Tidak ada data untuk direkap.");
+    return;
+  }
+
+  const bulanNames = ["JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"];
+  const sekarang = new Date();
+  const bulanIni = sekarang.getMonth();
+  const tahunIni = sekarang.getFullYear();
+  const namaBulanHeader = bulanNames[bulanIni];
+  
+  // 1. FILTER: Ambil pesanan yang belum selesai ATAU yang selesai di bulan berjalan
+  const rekapOrders = allOrders.filter(order => {
+    const tglSelesai = order.finalDeadline ? new Date(order.finalDeadline) : null;
+    
+    // Syarat 1: Belum Selesai (semua bulan sebelumnya tetap ikut)
+    if (order.status !== 'Selesai') return true;
+    
+    // Syarat 2: Jika sudah Selesai, hanya tampilkan yang selesai di bulan & tahun ini
+    if (order.status === 'Selesai' && tglSelesai) {
+      return tglSelesai.getMonth() === bulanIni && tglSelesai.getFullYear() === tahunIni;
+    }
+    
+    return false;
+  });
+
+  if (rekapOrders.length === 0) {
+    showToast("Tidak ada antrian aktif.");
+    return;
+  }
+
+  // 2. URUTKAN: Berdasarkan tanggal masuk agar orderan lama tetap di atas
+  rekapOrders.sort((a, b) => new Date(a.entryDate) - new Date(b.entryDate));
+
+  let teksRekap = `*LIST ORDERAN ${namaBulanHeader}*\n`;
+
+  rekapOrders.forEach((order, index) => {
+    let baris = `${index + 1}. ${order.customer} ${order.jobName} ${order.quantity || ''}`;
+    
+    // Logika keterangan status pengerjaan
+    if (['Desain', 'Revisi'].includes(order.status)) {
+      baris += ` mau didesainkan`;
+    } else if (['Produksi', 'Konfirmasi', 'Packing'].includes(order.status)) {
+      baris += ` mau dicetak`;
+    }
+
+    // Tambahkan info estimasi desain
+    if (order.statusDeadline) {
+      const tglDesain = new Date(order.statusDeadline).getDate();
+      baris += `, estimasi selesai desain tggl ${tglDesain}✅`;
+    }
+
+    // Tambahkan info estimasi pesanan final
+    if (order.finalDeadline) {
+      const tglFinal = new Date(order.finalDeadline).getDate();
+      const statusSelesai = order.status === 'Selesai' ? '✅' : '';
+      baris += `, estimasi selesai pesanan tggl ${tglFinal}${statusSelesai}`;
+    }
+
+    teksRekap += baris + `\n`;
+  });
+
+  // 3. COPY KE CLIPBOARD
+  navigator.clipboard.writeText(teksRekap).then(() => {
+    showToast("Rekap disalin (Termasuk antrian lama)!");
+  }).catch(err => {
+    console.error('Gagal menyalin: ', err);
+    alert(teksRekap);
+  });
+}
 
     window.onload = loadOrders;
   </script>
