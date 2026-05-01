@@ -192,17 +192,18 @@
                  class="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl outline-none shadow-sm text-sm focus:ring-2 focus:ring-blue-500/20">
         </div>
         
-        <div class="filter-grid" id="status-filters">
-          <button onclick="filterByStatus('Aktif')" class="filter-btn active" data-status="Aktif">
-            Semua <span id="count-aktif" class="count-badge">0</span>
-          </button>
-          <button onclick="filterByStatus('Desain')" class="filter-btn" data-status="Desain">Desain <span id="count-desain" class="count-badge">0</span></button>
-          <button onclick="filterByStatus('Revisi')" class="filter-btn" data-status="Revisi">Revisi <span id="count-revisi" class="count-badge">0</span></button>
-          <button onclick="filterByStatus('Konfirmasi')" class="filter-btn" data-status="Konfirmasi">Konf <span id="count-konfirmasi" class="count-badge">0</span></button>
-          <button onclick="filterByStatus('Produksi')" class="filter-btn" data-status="Produksi">Prod <span id="count-produksi" class="count-badge">0</span></button>
-          <button onclick="filterByStatus('Packing')" class="filter-btn" data-status="Packing">Pack <span id="count-packing" class="count-badge">0</span></button>
-          <button onclick="filterByStatus('Kirim')" class="filter-btn" data-status="Kirim">Kirim <span id="count-kirim" class="count-badge">0</span></button>
-        </div>
+       <div class="filter-grid" id="status-filters">
+  <button onclick="filterByStatus('Aktif')" class="filter-btn active" data-status="Aktif">
+    Semua <span id="count-aktif" class="count-badge">0</span>
+  </button>
+  <button onclick="filterByStatus('Desain')" class="filter-btn" data-status="Desain">Desain <span id="count-desain" class="count-badge">0</span></button>
+  <button onclick="filterByStatus('Revisi')" class="filter-btn" data-status="Revisi">Revisi <span id="count-revisi" class="count-badge">0</span></button>
+  <button onclick="filterByStatus('Konfirmasi')" class="filter-btn" data-status="Konfirmasi">Konf <span id="count-konfirmasi" class="count-badge">0</span></button>
+  <button onclick="filterByStatus('Cetak')" class="filter-btn" data-status="Cetak">Cetak <span id="count-cetak" class="count-badge">0</span></button>
+  <button onclick="filterByStatus('Finishing')" class="filter-btn" data-status="Finishing">Finish <span id="count-finishing" class="count-badge">0</span></button>
+  <button onclick="filterByStatus('Packing')" class="filter-btn" data-status="Packing">Pack <span id="count-packing" class="count-badge">0</span></button>
+  <button onclick="filterByStatus('Kirim')" class="filter-btn" data-status="Kirim">Kirim <span id="count-kirim" class="count-badge">0</span></button>
+</div>
       </div>
       <div id="order-list" class="space-y-4"></div>
     </div>
@@ -814,40 +815,46 @@ function openDetail(id) {
     }
 
     function applyFilters() {
-      const searchTerm = document.getElementById('search-input').value.toLowerCase();
-      
-      const aktifOrders = allOrders.filter(o => o.status !== 'Selesai');
-      const selesaiOrders = allOrders.filter(o => o.status === 'Selesai');
+  const searchTerm = document.getElementById('search-input').value.toLowerCase();[cite: 1]
+  
+  // Memisahkan pesanan aktif dan yang sudah selesai
+  const aktifOrders = allOrders.filter(o => o.status !== 'Selesai');[cite: 1]
+  const selesaiOrders = allOrders.filter(o => o.status === 'Selesai');[cite: 1]
 
-      // Update Counts
-      const counts = {
-        aktif: aktifOrders.length,
-        desain: allOrders.filter(o => o.status === 'Desain').length,
-        revisi: allOrders.filter(o => o.status === 'Revisi').length,
-        konfirmasi: allOrders.filter(o => o.status === 'Konfirmasi').length,
-        produksi: allOrders.filter(o => o.status === 'Produksi').length,
-        packing: allOrders.filter(o => o.status === 'Packing').length,
-        kirim: allOrders.filter(o => o.status === 'Kirim').length
-      };
+  // Update Counts berdasarkan tahapan terbaru: Desain, Revisi, Konfirmasi, Cetak, Finishing, Packing, Kirim
+  const counts = {
+    aktif: aktifOrders.length,
+    desain: allOrders.filter(o => o.status === 'Desain').length,
+    revisi: allOrders.filter(o => o.status === 'Revisi').length,
+    konfirmasi: allOrders.filter(o => o.status === 'Konfirmasi').length,
+    cetak: allOrders.filter(o => o.status === 'Cetak').length,
+    finishing: allOrders.filter(o => o.status === 'Finishing').length,
+    packing: allOrders.filter(o => o.status === 'Packing').length,
+    kirim: allOrders.filter(o => o.status === 'Kirim').length
+  };[cite: 1]
 
-      for (const [k, v] of Object.entries(counts)) {
-        const el = document.getElementById('count-' + k);
-        if (el) el.textContent = v;
-      }
+  // Memasukkan angka jumlah ke elemen badge di HTML[cite: 1]
+  for (const [k, v] of Object.entries(counts)) {
+    const el = document.getElementById('count-' + k);
+    if (el) el.textContent = v;
+  }[cite: 1]
 
-      const filteredAktif = aktifOrders.filter(o => {
-        const matchesSearch = `${o.customer} ${o.jobName}`.toLowerCase().includes(searchTerm);
-        const matchesStatus = currentFilter === 'Aktif' ? true : o.status === currentFilter;
-        return matchesSearch && matchesStatus;
-      });
+  // Filter untuk daftar Antrian Aktif[cite: 1]
+  const filteredAktif = aktifOrders.filter(o => {
+    const matchesSearch = `${o.customer} ${o.jobName}`.toLowerCase().includes(searchTerm);[cite: 1]
+    const matchesStatus = currentFilter === 'Aktif' ? true : o.status === currentFilter;[cite: 1]
+    return matchesSearch && matchesStatus;[cite: 1]
+  });
 
-      const filteredSelesai = selesaiOrders.filter(o => {
-          return `${o.customer} ${o.jobName}`.toLowerCase().includes(searchTerm);
-      });
+  // Filter untuk daftar Arsip Selesai[cite: 1]
+  const filteredSelesai = selesaiOrders.filter(o => {
+    return `${o.customer} ${o.jobName}`.toLowerCase().includes(searchTerm);[cite: 1]
+  });
 
-      renderList('order-list', filteredAktif, true); // true = tampilkan deadline
-      renderList('completed-list', filteredSelesai, false); // false = sembunyikan deadline
-    }
+  // Render hasil ke UI[cite: 1]
+  renderList('order-list', filteredAktif, true); // Menampilkan progress tracker & deadline[cite: 1]
+  renderList('completed-list', filteredSelesai, false); // Sembunyikan detail waktu untuk arsip[cite: 1]
+}
 
 function renderList(targetId, orders, showDeadline) {
   const listEl = document.getElementById(targetId);
