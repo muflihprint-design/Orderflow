@@ -491,6 +491,10 @@ async function handleFormSubmit(e) {
 
     if (result.success) {
       showToast("✓ Pesanan Tersimpan!");
+      
+      // 4. KIRIM NOTIFIKASI KE TELEGRAM (Otomatis)
+      sendTelegramNotification(orderData);
+
       e.target.reset();
       loadOrders(); 
       switchTab('antrian');
@@ -501,12 +505,91 @@ async function handleFormSubmit(e) {
     console.error(err);
     showToast("❌ Gagal terhubung ke server");
   } finally {
-    // 4. Buka kunci tombol kembali
+    // 5. Buka kunci tombol kembali
     btn.disabled = false;
     btn.classList.remove('opacity-70', 'cursor-not-allowed');
     btn.innerHTML = originalContent;
     if (window.lucide) lucide.createIcons();
   }
+}
+
+// FUNGSI NOTIFIKASI TELEGRAM
+function sendTelegramNotification(data) {
+  if (allOrders.length === 0) {
+    showToast("Tidak ada data untuk direkap.");
+    return;
+  }
+
+  const bulanNames = ["JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"];
+  const sekarang = new Date();
+  const bulanIni = sekarang.getMonth();
+  const tahunIni = sekarang.getFullYear();
+  const namaBulanHeader = bulanNames[bulanIni];
+  
+  // 1. FILTER & SORT (Logika sama dengan generateWARekap Anda)
+  const rekapOrders = allOrders.filter(order => {
+    const tglSelesai = order.finalDeadline ? new Date(order.finalDeadline) : null;
+    if (order.status !== 'Selesai') return true;
+    if (order.status === 'Selesai' && tglSelesai) {
+      return tglSelesai.getMonth() === bulanIni && tglSelesai.getFullYear() === tahunIni;
+    }
+    return false;
+  });
+
+  if (rekapOrders.length === 0) {
+    showToast("Tidak ada antrian aktif.");
+    return;
+  }
+
+  rekapOrders.sort((a, b) => new Date(a.entryDate) - new Date(b.entryDate));
+
+  // 2. BUILD TEKS REKAP
+  let teksRekap = `📝 *LIST ORDERAN ${namaBulanHeader}*\n`;
+  teksRekap += `--------------------------\n`;
+
+  rekapOrders.forEach((order, index) => {
+    let baris = `${index + 1}. *${order.customer}*: ${order.jobName} ${order.quantity ? 'x' + order.quantity : ''}`;
+    
+    if (['Desain', 'Revisi'].includes(order.status)) {
+      baris += ` _mau didesainkan_`;
+    } else if (['Produksi', 'Konfirmasi', 'Packing'].includes(order.status)) {
+      baris += ` _mau dicetak_`;
+    }
+
+    if (order.statusDeadline) {
+      const tglDesain = new Date(order.statusDeadline).getDate();
+      baris += `, estimasi selesai desain tggl ${tglDesain}✅`;
+    }
+
+    if (order.finalDeadline) {
+      const tglFinal = new Date(order.finalDeadline).getDate();
+      const statusSelesai = order.status === 'Selesai' ? '✅' : '';
+      baris += `, estimasi selesai pesanan tggl ${tglFinal}${statusSelesai}`;
+    }
+
+    teksRekap += baris + `\n`;
+  });
+
+  // 3. KIRIM KE TELEGRAM
+  const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U';
+  const chatId = '-5026846679';
+  
+  const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(teksRekap)}&parse_mode=Markdown`;
+
+  showToast("Mengirim rekap ke Telegram...");
+  
+  fetch(url)
+    .then(response => {
+      if (response.ok) {
+        showToast("✓ Rekap terkirim ke Telegram!");
+      } else {
+        throw new Error("Gagal kirim");
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      showToast("❌ Gagal kirim ke Telegram");
+    });
 }
     
 function openDetail(id) {
