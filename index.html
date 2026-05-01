@@ -276,13 +276,18 @@
       </div>
 
       <div>
-        <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Status Awal</label>
-        <select name="status" class="w-full p-4 bg-blue-50 text-blue-700 border-0 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
-          <option value="Desain" selected>🎨 Desain</option>
-          <option value="Produksi">⏳ Produksi</option>
-          <option value="Kirim">🖨️ Kirim</option>
-        </select>
-      </div>
+  <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Status Awal</label>
+  <div class="relative">
+    <select name="status" class="w-full p-4 bg-blue-50 text-blue-700 border-0 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
+      <option value="Desain" selected>🎨 Desain</option>
+      <option value="Cetak">🖨️ Cetak</option>
+     </select>
+    <!-- Ikon panah bawah tambahan (opsional) -->
+    <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-blue-500">
+      <i data-lucide="chevron-down" class="w-5 h-5"></i>
+    </div>
+  </div>
+</div>
 
       <div class="grid grid-cols-2 gap-3">
         <div>
@@ -390,15 +395,25 @@
     </div>
 
     <p class="text-[10px] font-bold text-gray-400 uppercase mb-3 ml-1">Pilih Tahapan Baru:</p>
-    <div id="status-buttons-grid" class="grid grid-cols-3 gap-2 mb-8">
-      <button onclick="confirmStatus('Desain')" class="p-3 rounded-xl border font-bold text-blue-700 border-blue-100 bg-blue-50 text-[10px] active:scale-95 transition-transform">DESAIN</button>
-      <button onclick="confirmStatus('Revisi')" class="p-3 rounded-xl border font-bold text-pink-700 border-pink-100 bg-pink-50 text-[10px] active:scale-95 transition-transform">REVISI</button>
-      <button onclick="confirmStatus('Konfirmasi')" class="p-3 rounded-xl border font-bold text-indigo-700 border-indigo-100 bg-indigo-50 text-[10px] active:scale-95 transition-transform">KONFIRMASI</button>
-      <button onclick="confirmStatus('Produksi')" class="p-3 rounded-xl border font-bold text-yellow-700 border-yellow-100 bg-yellow-50 text-[10px] active:scale-95 transition-transform">PRODUKSI</button>
-      <button onclick="confirmStatus('Packing')" class="p-3 rounded-xl border font-bold text-purple-700 border-purple-100 bg-purple-50 text-[10px] active:scale-95 transition-transform">PACKING</button>
-      <button onclick="confirmStatus('Kirim')" class="p-3 rounded-xl border font-bold text-orange-700 border-orange-100 bg-orange-50 text-[10px] active:scale-95 transition-transform">KIRIM</button>
-      <button onclick="confirmStatus('Selesai')" class="p-3 rounded-xl border font-bold text-emerald-700 border-emerald-100 bg-emerald-50 text-[10px] col-span-3 mt-1 shadow-sm active:scale-95 transition-transform">✓ TANDAI SELESAI</button>
-    </div>
+    <div id="status-buttons-grid" class="grid grid-cols-2 gap-2 mb-8">
+  <!-- Baris 1: Desain & Revisi -->
+  <button onclick="confirmStatus('Desain')" class="p-3 rounded-xl border font-bold text-blue-700 border-blue-100 bg-blue-50 text-[10px] active:scale-95 transition-transform uppercase">Desain</button>
+  <button onclick="confirmStatus('Revisi')" class="p-3 rounded-xl border font-bold text-pink-700 border-pink-100 bg-pink-50 text-[10px] active:scale-95 transition-transform uppercase">Revisi</button>
+  
+  <!-- Baris 2: Konfirmasi & Cetak -->
+  <button onclick="confirmStatus('Konfirmasi')" class="p-3 rounded-xl border font-bold text-indigo-700 border-indigo-100 bg-indigo-50 text-[10px] active:scale-95 transition-transform uppercase">Konfirmasi</button>
+  <button onclick="confirmStatus('Cetak')" class="p-3 rounded-xl border font-bold text-orange-700 border-orange-100 bg-orange-50 text-[10px] active:scale-95 transition-transform uppercase">Cetak</button>
+  
+  <!-- Baris 3: Finishing & Packing -->
+  <button onclick="confirmStatus('Finishing')" class="p-3 rounded-xl border font-bold text-yellow-700 border-yellow-100 bg-yellow-50 text-[10px] active:scale-95 transition-transform uppercase">Finishing</button>
+  <button onclick="confirmStatus('Packing')" class="p-3 rounded-xl border font-bold text-purple-700 border-purple-100 bg-purple-50 text-[10px] active:scale-95 transition-transform uppercase">Packing</button>
+  
+  <!-- Baris 4: Kirim -->
+  <button onclick="confirmStatus('Kirim')" class="p-3 rounded-xl border font-bold text-cyan-700 border-cyan-100 bg-cyan-50 text-[10px] col-span-2 active:scale-95 transition-transform uppercase">🚀 Kirim / Pick Up</button>
+  
+  <!-- Baris Utama: Selesai -->
+  <button onclick="confirmStatus('Selesai')" class="p-3 rounded-xl border font-bold text-emerald-700 border-emerald-100 bg-emerald-50 text-[10px] col-span-2 mt-1 shadow-sm active:scale-95 transition-transform uppercase">✓ Tandai Selesai</button>
+</div>
     
     <button onclick="closeStatusModal()" class="w-full py-2 text-gray-400 font-bold text-sm">BATAL</button>
   </div>
@@ -866,7 +881,6 @@ function processOrderRekap(sendToTelegram = true) {
   const tahunIni = sekarang.getFullYear();
   const namaBulanHeader = bulanNames[bulanIni];
   
-  // 1. FILTER: Orderan aktif atau yang selesai di bulan berjalan
   const rekapOrders = allOrders.filter(order => {
     const tglSelesai = order.finalDeadline ? new Date(order.finalDeadline) : null;
     if (order.status !== 'Selesai') return true;
@@ -881,9 +895,9 @@ function processOrderRekap(sendToTelegram = true) {
     return;
   }
 
-  // 2. URUTKAN: Berdasarkan tanggal masuk
   rekapOrders.sort((a, b) => new Date(a.entryDate) - new Date(b.entryDate));
 
+  // Tahapan proses yang ditampilkan di laporan (Tanpa Konfirmasi & Kirim)
   const stages = ['Desain', 'Cetak', 'Finishing', 'Packing'];
 
   let teksRekap = `📝 *LIST ORDERAN ${namaBulanHeader}*\n`;
@@ -901,26 +915,47 @@ function processOrderRekap(sendToTelegram = true) {
       }
       teksRekap += `${baris}\n\n`; 
     } else {
-      baris += (['Desain', 'Revisi'].includes(order.status)) ? ` _mau didesainkan_` : ` _mau dicetak_`;
+      // Penyesuaian keterangan status teks
+      if (['Desain', 'Revisi'].includes(order.status)) {
+        baris += ` _mau didesainkan_`;
+      } else if (order.status === 'Konfirmasi') {
+        baris += ` _menunggu konfirmasi konsumen_`;
+      } else if (order.status === 'Kirim') {
+        baris += ` _siap dikirim/ambil_`;
+      } else {
+        baris += ` _sedang diproses_`;
+      }
 
       if (order.statusDeadline) {
         const tglTahap = new Date(order.statusDeadline).getDate();
         baris += `, estimasi selesai ${order.status.toLowerCase()} tggl ${tglTahap}`;
       }
-
       if (order.finalDeadline) {
         const tglFinal = new Date(order.finalDeadline).getDate();
         baris += `, estimasi selesai pesanan tggl ${tglFinal}`;
       }
 
+      // Visualisasi Tahapan (Hanya Desain, Cetak, Finishing, Packing)
       const progressVisual = stages.map((stage) => {
         let isDone = false;
         if (stage === 'Desain') {
+          // Desain dianggap selesai jika status bukan Desain/Revisi
           isDone = !['Desain', 'Revisi'].includes(order.status);
         } else {
-          const currentIndex = stages.indexOf(order.status);
+          // Jika status adalah Konfirmasi atau Kirim, kita tentukan posisinya secara manual 
+          // agar centang tetap akurat pada urutan stages yang tersisa
+          let effectiveStatus = order.status;
+          if (order.status === 'Konfirmasi') effectiveStatus = 'Cetak'; // Konfirmasi berada sebelum Cetak
+          if (order.status === 'Kirim') effectiveStatus = 'Selesai'; // Kirim sudah melewati semua stage
+
+          const currentIndex = stages.indexOf(effectiveStatus);
           const stageIndex = stages.indexOf(stage);
-          isDone = currentIndex > stageIndex && currentIndex !== -1;
+          
+          if (order.status === 'Kirim') {
+            isDone = true;
+          } else {
+            isDone = currentIndex > stageIndex && currentIndex !== -1;
+          }
         }
         return isDone ? `${stage}✅` : stage;
       }).join(', ');
@@ -929,33 +964,19 @@ function processOrderRekap(sendToTelegram = true) {
     }
   });
 
-  // 3. AKSI A: SALIN KE CLIPBOARD (Selalu dijalankan)
+  // Logika pengiriman & salin
   navigator.clipboard.writeText(teksRekap).then(() => {
-    if (!sendToTelegram) {
-      showToast("Rekap disalin ke WhatsApp!");
-    }
-  }).catch(err => console.error("Gagal salin:", err));
+    if (!sendToTelegram) showToast("Rekap disalin ke WhatsApp!");
+  });
 
-  // 4. AKSI B: KIRIM KE TELEGRAM (Hanya jika true)
   if (sendToTelegram) {
     const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U';
     const chatId = '-5026846679';
     const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(teksRekap)}&parse_mode=Markdown`;
 
-    showToast("Mengirim rekap ke Telegram...");
-    
-    fetch(url)
-      .then(response => {
-        if (response.ok) {
-          showToast("✓ Rekap terkirim & disalin!");
-        } else {
-          throw new Error("Gagal kirim");
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        showToast("❌ Gagal kirim ke Telegram");
-      });
+    fetch(url).then(res => {
+      if(res.ok) showToast("✓ Rekap terkirim & disalin!");
+    }).catch(err => console.error(err));
   }
 }
     
