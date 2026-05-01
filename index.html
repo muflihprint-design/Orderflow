@@ -45,13 +45,14 @@
 }
 
     /* Progress Tracker Styles */
+/* Progress Tracker Styles - Updated Colors */
 .progress-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 12px;
+  margin: 15px 0 10px 0;
   position: relative;
-  padding: 0 4px;
+  padding: 0 10px;
 }
 
 .progress-line {
@@ -66,8 +67,8 @@
 }
 
 .progress-step {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: #e5e7eb;
   z-index: 2;
@@ -75,32 +76,37 @@
   transition: all 0.3s ease;
 }
 
+/* Warna BIRU untuk proses yang sudah dilewati */
 .progress-step.completed {
-  background: #2563eb;
+  background: #2563eb; 
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
 
+/* Warna MERAH untuk proses yang sedang berjalan */
 .progress-step.current {
-  background: #2563eb;
-  transform: scale(1.5);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.3);
+  background: #ef4444; 
+  transform: scale(1.4);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.3);
 }
 
 .step-label {
   position: absolute;
-  top: 12px;
+  top: 14px;
   left: 50%;
   transform: translateX(-50%);
   font-size: 7px;
-  font-weight: 700;
+  font-weight: 800;
   color: #9ca3af;
   white-space: nowrap;
   text-transform: uppercase;
 }
 
-.progress-step.completed .step-label,
+.progress-step.completed .step-label {
+  color: #2563eb; /* Label Biru */
+}
+
 .progress-step.current .step-label {
-  color: #2563eb;
+  color: #ef4444; /* Label Merah */
 }
     
     /* Navigation Bar */
