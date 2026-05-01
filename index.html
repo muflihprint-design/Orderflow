@@ -523,30 +523,30 @@ function openDetail(id) {
   const cleanPhone = (order.phone || '').replace(/'/g, '').replace(/\D/g,'');
   document.getElementById('det-phone').href = cleanPhone ? `https://wa.me/${cleanPhone}` : '#';
   
-  document.querySelector('#det-entry span').textContent = formatFullDate(order.entryDate);
-  
-  // Update bagian Deadline di dalam Modal
+  // Mengatur ulang urutan dan visualisasi deadline di dalam modal
   const infoContainer = document.querySelector('.space-y-4.mb-6');
   infoContainer.innerHTML = `
+     <!-- Tanggal Masuk -->
      <div class="flex justify-between text-sm">
-       <span class="text-gray-500 font-medium">Tgl Masuk</span>
-       <span class="font-bold">${formatFullDate(order.entryDate)}</span>
+       <span class="text-gray-500 font-medium text-[10px] uppercase">Tgl Masuk</span>
+       <span class="font-bold text-gray-800">${formatFullDate(order.entryDate)}</span>
      </div>
      
-     <!-- PENAMBAHAN: Deadline Tahap -->
-     <div class="flex justify-between text-sm border-t border-gray-50 pt-2">
-       <span class="text-gray-500 font-medium">Deadline Tahap (${order.status})</span>
+     <!-- Deadline Final (Posisi Atas & Font Lebih Besar) -->
+     <div class="flex justify-between items-center text-sm border-t border-gray-100 pt-3 pb-1">
+       <span class="text-red-600 font-black uppercase text-[10px] tracking-wider">Deadline Final</span>
        <div class="text-right">
-         <span class="font-bold block">${formatFullDate(order.statusDeadline)}</span>
-         <span class="text-[10px] block mt-1">${getDeadlineLabel(order.statusDeadline)}</span>
+         <span class="text-lg font-black block text-red-700 leading-none">${formatFullDate(order.finalDeadline)}</span>
+         <span class="text-[11px] block mt-1 font-black uppercase italic text-red-600">${getDeadlineLabel(order.finalDeadline)}</span>
        </div>
      </div>
 
-     <div class="flex justify-between text-sm border-t border-gray-50 pt-2">
-       <span class="text-gray-500 font-medium">Deadline Final</span>
+     <!-- Deadline Tahap (Posisi Bawah) -->
+     <div class="flex justify-between items-center text-sm border-t border-gray-50 pt-2">
+       <span class="text-gray-500 font-medium text-[10px] uppercase">Target Tahap (${order.status})</span>
        <div class="text-right">
-         <span class="font-bold block" id="det-final-date">${formatFullDate(order.finalDeadline)}</span>
-         <span id="det-final-label" class="text-[10px] block mt-1">${getDeadlineLabel(order.finalDeadline)}</span>
+         <span class="font-bold block text-gray-800">${formatFullDate(order.statusDeadline)}</span>
+         <span class="text-[10px] block text-gray-500">${getDeadlineLabel(order.statusDeadline)}</span>
        </div>
      </div>
   `;
@@ -559,7 +559,7 @@ function openDetail(id) {
     <span class="status-badge bg-gray-100 text-gray-600">${order.priority}</span>
   `;
 
-  // Tampilkan Modal
+  // Animasi Tampilkan Modal
   const modal = document.getElementById('detail-modal');
   modal.classList.remove('hidden');
   setTimeout(() => {
@@ -569,7 +569,6 @@ function openDetail(id) {
   }, 10);
   lucide.createIcons();
 }
-
 
     
     function closeDetail() {
