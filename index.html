@@ -200,20 +200,35 @@
     </div>
   </div>
 
-  <!-- Modal Status -->
-  <div id="status-modal" class="fixed inset-0 z-[70] hidden bg-black/60 backdrop-blur-sm flex items-end justify-center">
-    <div class="modal-content bg-white w-full max-w-lg rounded-t-[2.5rem] p-8 transform translate-y-full transition-transform duration-300">
-      <h3 class="text-xl font-black mb-6 flex items-center gap-2"><i data-lucide="check-circle-2" class="text-blue-600"></i> Pilih Status Baru</h3>
-      <div class="grid grid-cols-2 gap-3">
-        <button onclick="confirmStatus('Desain')" class="p-4 rounded-2xl bg-blue-50 text-blue-700 font-bold text-sm">Desain</button>
-        <button onclick="confirmStatus('Revisi')" class="p-4 rounded-2xl bg-pink-50 text-pink-700 font-bold text-sm">Revisi</button>
-        <button onclick="confirmStatus('Konfirmasi')" class="p-4 rounded-2xl bg-indigo-50 text-indigo-700 font-bold text-sm">Konfirmasi</button>
-        <button onclick="confirmStatus('Produksi')" class="p-4 rounded-2xl bg-amber-50 text-amber-700 font-bold text-sm">Produksi</button>
-        <button onclick="confirmStatus('Packing')" class="p-4 rounded-2xl bg-purple-50 text-purple-700 font-bold text-sm">Packing</button>
-        <button onclick="confirmStatus('Kirim')" class="p-4 rounded-2xl bg-orange-50 text-orange-700 font-bold text-sm">Kirim</button>
-        <button onclick="confirmStatus('Selesai')" class="p-4 rounded-2xl bg-emerald-600 text-white font-bold text-sm col-span-2 shadow-lg shadow-emerald-200">Tandai Selesai</button>
+  <!-- Modal Update Status (GABUNGAN BARU) -->
+  <div id="status-modal" class="fixed inset-0 bg-black/60 z-[70] hidden flex items-end modal-overlay">
+    <div class="bg-white w-full rounded-t-[2.5rem] p-6 modal-content transform translate-y-full">
+      <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-8"></div>
+      <h3 class="text-xl font-bold mb-6">Update Deadline & Tahapan</h3>
+      
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="p-3 bg-blue-50 rounded-2xl">
+          <label class="block text-[9px] font-bold text-blue-600 uppercase mb-1">Deadline Tahap</label>
+          <input type="date" id="edit-status-deadline" class="w-full bg-transparent border-none outline-none text-xs font-bold">
+        </div>
+        <div class="p-3 bg-red-50 rounded-2xl">
+          <label class="block text-[9px] font-bold text-red-600 uppercase mb-1">Deadline Final</label>
+          <input type="date" id="edit-final-deadline" class="w-full bg-transparent border-none outline-none text-xs font-bold">
+        </div>
       </div>
-      <button onclick="closeStatusModal()" class="w-full mt-6 py-4 text-gray-400 font-bold">Batalkan</button>
+
+      <p class="text-[10px] font-bold text-gray-400 uppercase mb-3 ml-1">Pilih Tahapan Baru:</p>
+      <div class="grid grid-cols-3 gap-2 mb-8">
+        <button onclick="confirmStatus('Desain')" class="p-3 rounded-xl border font-bold text-blue-700 border-blue-100 bg-blue-50 text-[10px]">DESAIN</button>
+        <button onclick="confirmStatus('Revisi')" class="p-3 rounded-xl border font-bold text-pink-700 border-pink-100 bg-pink-50 text-[10px]">REVISI</button>
+        <button onclick="confirmStatus('Konfirmasi')" class="p-3 rounded-xl border font-bold text-indigo-700 border-indigo-100 bg-indigo-50 text-[10px]">KONFIRMASI</button>
+        <button onclick="confirmStatus('Produksi')" class="p-3 rounded-xl border font-bold text-yellow-700 border-yellow-100 bg-yellow-50 text-[10px]">PRODUKSI</button>
+        <button onclick="confirmStatus('Packing')" class="p-3 rounded-xl border font-bold text-purple-700 border-purple-100 bg-purple-50 text-[10px]">PACKING</button>
+        <button onclick="confirmStatus('Kirim')" class="p-3 rounded-xl border font-bold text-orange-700 border-orange-100 bg-orange-50 text-[10px]">KIRIM</button>
+        <button onclick="confirmStatus('Selesai')" class="p-3 rounded-xl border font-bold text-emerald-700 border-emerald-100 bg-emerald-50 text-[10px] col-span-3 mt-1 shadow-sm">✓ TANDAI SELESAI</button>
+      </div>
+      
+      <button onclick="closeStatusModal()" class="w-full py-2 text-gray-400 font-bold text-sm">BATAL</button>
     </div>
   </div>
 
@@ -404,17 +419,36 @@
     }
 
     function confirmStatus(newStatus) {
-      const idx = allOrders.findIndex(o => o.id === selectedOrderId);
-      if (idx !== -1) {
-        allOrders[idx].status = newStatus;
-        if (isGoogleEnv()) {
-          google.script.run.updateOrderStatus(selectedOrderId, newStatus, "", "");
-        }
-      }
-      applyFilters(); 
-      closeStatusModal();
-      showToast("Status diperbarui!");
-    }
+  let newStageDl = document.getElementById('edit-status-deadline').value;
+  let newFinalDl = document.getElementById('edit-final-deadline').value;
+
+  // Format tanggal agar konsisten
+  if (newStageDl) newStageDl += "T12:00:00";
+  if (newFinalDl) newFinalDl += "T12:00:00";
+
+  // --- STRATEGI OPTIMISTIC UI ---
+  // 1. Cari dan Update data di memori lokal (allOrders)
+  const idx = allOrders.findIndex(o => o.id === selectedOrderId);
+  if (idx !== -1) {
+    allOrders[idx].status = newStatus;
+    allOrders[idx].statusDeadline = newStageDl;
+    allOrders[idx].finalDeadline = newFinalDl;
+  }
+
+  // 2. Langsung perbarui tampilan & tutup modal (Tanpa menunggu server)
+  applyFilters(); 
+  closeStatusModal();
+
+  // 3. Kirim ke Google Sheets di latar belakang
+  if (isGoogleEnv()) {
+    google.script.run
+      .withSuccessHandler(() => {
+        console.log("Data tersinkronisasi dengan Spreadsheet");
+        // Optional: loadOrders(); // Hanya jika ingin memastikan urutan data benar-benar sinkron
+      })
+      .updateOrderStatus(selectedOrderId, newStatus, newStageDl, newFinalDl);
+  }
+}
 
     function filterByStatus(status) {
       currentFilter = status;
