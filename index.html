@@ -1055,20 +1055,20 @@ function processOrderRekap(sendToTelegram = true) {
   const tahunIni = sekarang.getFullYear();
   const namaBulanHeader = bulanNames[bulanIni].toUpperCase();
   
-  const tigaHariLagi = new Date();
-  tigaHariLagi.setDate(sekarang.getDate() + 3);
-  tigaHariLagi.setHours(23, 59, 59, 999);
-
+  // LOGIKA BARU: Batas waktu adalah kurang dari 4 hari (sampai akhir hari ke-3)
   const empatHariLagi = new Date();
   empatHariLagi.setDate(sekarang.getDate() + 4);
+  empatHariLagi.setHours(0, 0, 0, 0); // Batas eksklusif (di bawah 4 hari)
 
   let urgentCount = 0;
   let urgentQty = 0;
 
+  // Hitung statistik untuk header urgent
   allOrders.forEach(order => {
-    if (order.status !== 'Selesai' && order.finalDeadline) {
+    if (order.status !== 'Selesai' && order.status !== 'Kirim' && order.finalDeadline) {
       const dDeadline = new Date(order.finalDeadline);
-      if (dDeadline >= sekarang && dDeadline <= tigaHariLagi) {
+      // Memeriksa jika deadline masih di masa depan DAN kurang dari 4 hari dari sekarang
+      if (dDeadline >= sekarang && dDeadline < empatHariLagi) {
         urgentCount++;
         urgentQty += parseInt(order.quantity || 0);
       }
@@ -1109,6 +1109,7 @@ function processOrderRekap(sendToTelegram = true) {
 
   const stages = ['Desain', 'Cetak', 'Finishing', 'Packing'];
   
+  // UPDATE TEXT HEADER: Menjadi 3 Hari
   let teksRekap = `🚨 *URGENT - DEADLINE 3 HARI KE DEPAN*\n`;
   teksRekap += `📦 Total Order: ${urgentCount} Order\n`;
   teksRekap += `🔢 Total Qty  : ${urgentQty.toLocaleString()}\n`;
@@ -1126,15 +1127,15 @@ function processOrderRekap(sendToTelegram = true) {
 
     let qtyText = order.quantity ? `x${order.quantity},` : ",";
     
-    // --- LOGIKA ICON & PENEBALAN URGENT ---
     let isUrgentList = false;
     let urgentIcon = ""; 
     
     if (order.finalDeadline && !['Selesai', 'Kirim'].includes(order.status)) {
       const dDeadline = new Date(order.finalDeadline);
-      if (dDeadline <= empatHariLagi) {
+      // Konsisten dengan logika header: < 4 hari
+      if (dDeadline < empatHariLagi) {
         isUrgentList = true;
-        urgentIcon = "💓 "; // Tambahkan icon petir untuk urgent
+        urgentIcon = "💓 "; 
       }
     }
 
@@ -1173,12 +1174,10 @@ function processOrderRekap(sendToTelegram = true) {
     }
   });
 
-  // Copy to clipboard
   navigator.clipboard.writeText(teksRekap).then(() => {
     if (!sendToTelegram) showToast("Rekap disalin!");
   });
 
-  // Send to Telegram
   if (sendToTelegram) {
     const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U';
     const chatId = '-5026846679';
