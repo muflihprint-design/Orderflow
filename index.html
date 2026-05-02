@@ -318,7 +318,7 @@
     <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1 flex items-center gap-1">
       <i data-lucide="wrench" class="w-3 h-3"></i> Kelengkapan Bahan (Import Otomatis)
     </label>
-    <!-- Menambahkan 'readonly' dan 'bg-gray-100' agar tidak bisa diedit[cite: 1] -->
+    <!-- Menambahkan 'readonly' dan 'bg-gray-100' agar tidak bisa diedit -->
     <textarea name="equipment" rows="2" readonly 
               placeholder="Pilih dari Data Transaksi untuk mengisi..." 
               class="w-full p-4 bg-gray-100 border border-gray-100 rounded-2xl shadow-sm outline-none cursor-not-allowed text-sm text-gray-600 font-mono"></textarea>
@@ -755,8 +755,8 @@ function openDetail(id) {
 
   // --- LOGIKA KELENGKAPAN BAHAN (DENGAN TANDA CENTANG) ---
   const equipContainer = document.getElementById('det-equipment-list');
-  const rawEquip = order.equipment || ""; // Diambil dari kolom L[cite: 1]
-  const checkedEquip = order.checkedEquipment || ""; // Diambil dari kolom M[cite: 1]
+  const rawEquip = order.equipment || ""; // Diambil dari kolom L
+  const checkedEquip = order.checkedEquipment || ""; // Diambil dari kolom M
 
   if (!rawEquip) {
     equipContainer.innerHTML = `<span class="text-gray-400 italic text-[10px]">Tidak ada data bahan.</span>`;
@@ -775,7 +775,7 @@ function openDetail(id) {
                        </div>`;
     
     itemsArray.forEach(item => {
-      // Cek apakah item ini sudah ada di kolom M (Checked)[cite: 1]
+      // Cek apakah item ini sudah ada di kolom M (Checked)
       const isChecked = checkedEquip.toLowerCase().includes(item.toLowerCase());
       
       htmlContent += `
@@ -1009,8 +1009,8 @@ function renderList(targetId, orders, showDeadline) {
     const currentIndex = stages.indexOf(order.status);
     
     // --- LOGIKA PENGECEKAN KELENGKAPAN ---
-    const rawEquip = order.equipment || ""; // Kolom L[cite: 1]
-    const checkedEquip = (order.checkedEquipment || "").toLowerCase(); // Kolom M[cite: 1]
+    const rawEquip = order.equipment || ""; // Kolom L
+    const checkedEquip = (order.checkedEquipment || "").toLowerCase(); // Kolom M
     let isComplete = true;
 
     if (rawEquip.includes(':')) {
@@ -1216,11 +1216,11 @@ function processOrderRekap(sendToTelegram = true) {
         // LOGIKA PENGECEKAN TAHAPAN
         if (stage === 'Item') {
           // Cek kelengkapan bahan (Kolom L vs Kolom M)
-          const rawEquip = order.equipment || "";[cite: 1]
-          const checkedEquip = (order.checkedEquipment || "").toLowerCase();[cite: 1]
+          const rawEquip = order.equipment || "";
+          const checkedEquip = (order.checkedEquipment || "").toLowerCase();
           if (rawEquip.includes(':')) {
             const itemsArray = rawEquip.split(':')[1].split(',').map(i => i.trim().toLowerCase());
-            isDone = itemsArray.every(item => checkedEquip.includes(item));[cite: 1]
+            isDone = itemsArray.every(item => checkedEquip.includes(item));
           } else {
             isDone = false;
           }
