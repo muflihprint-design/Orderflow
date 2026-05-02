@@ -420,7 +420,7 @@
 </div>
 
   <script>
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwm1NnEkBSrwXRd0f9XDodc3PX8spO1oy6bR0Eh5CJgP7sFqCUwd9CjaekOEkEQkUNavg/exec';
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyEY7UFGynby7PWzl3Win9-spvSvRJsClO-x8htc74Iy9_wNUcCrzLR74tLnzofyO43zQ/exec';
     
     let allOrders = [];
     let currentFilter = 'Aktif';
@@ -545,18 +545,13 @@ async function handleFormSubmit(e) {
 
   const formData = new FormData(e.target);
   
-  // Ambil waktu sekarang untuk entryDate agar sinkron dengan database
-  const sekarang = new Date();
-  const formattedDate = sekarang.getFullYear() + "-" + 
-                        String(sekarang.getMonth() + 1).padStart(2, '0') + "-" + 
-                        String(sekarang.getDate()).padStart(2, '0') + " " + 
-                        String(sekarang.getHours()).padStart(2, '0') + ":" + 
-                        String(sekarang.getMinutes()).padStart(2, '0') + ":" + 
-                        String(sekarang.getSeconds()).padStart(2, '0');
-
+  /**
+   * CATATAN: 
+   * 'id' tidak lagi dibuat di sini karena server (Apps Script) 
+   * akan otomatis membuat ID berdasarkan nomor urut (ORD-001, dst).
+   */
   const orderData = {
     action: 'addNewOrder', 
-    id: 'ORD-' + Date.now().toString().slice(-6),
     customer: formData.get('customer'),
     phone: formData.get('phone'),
     jobName: formData.get('jobName'),
@@ -565,8 +560,8 @@ async function handleFormSubmit(e) {
     status: formData.get('status') || 'Desain',
     description: formData.get('description'),
     finalDeadline: formData.get('finalDeadline'),
-    statusDeadline: formData.get('statusDeadline'),
-    entryDate: formattedDate // Tambahkan entryDate agar pengurutan langsung bekerja
+    statusDeadline: formData.get('statusDeadline')
+    // entryDate juga sudah ditangani otomatis oleh server agar formatnya standar
   };
 
   try {
@@ -582,10 +577,10 @@ async function handleFormSubmit(e) {
       
       e.target.reset();
       
-      // PENTING: Tunggu proses loadOrders() selesai agar variabel 'allOrders' terisi data terbaru
+      // Memuat ulang data agar nomor urut ID terbaru muncul di list
       await loadOrders(); 
       
-      // Baru kemudian panggil rekap setelah data di memori sudah yang paling baru
+      // Jalankan rekap otomatis ke Telegram/Clipboard
       processOrderRekap(); 
 
       switchTab('antrian');
@@ -896,51 +891,42 @@ function processOrderRekap(sendToTelegram = true) {
     return false;
   });
 
-  /**
-   * PERBAIKAN UTAMA:
-   * Menangani data yang bisa berupa String "2026-05-02 8:43" 
-   * atau Objek Date asli dari database.
-   */
   const formatStandardDate = (dateVal) => {
     if (!dateVal) return new Date(0);
-    
-    // Jika data sudah dalam bentuk objek Date, langsung kembalikan
     if (dateVal instanceof Date) return dateVal;
-
-    // Jika berupa string, bedah menggunakan Regex
     const m = String(dateVal).match(/\d+/g);
     if (!m || m.length < 3) return new Date(0);
-
-    // Ambil komponen (Tahun, Bulan, Tgl, Jam, Menit, Detik)
-    const thn = m[0];
-    const bln = parseInt(m[1]) - 1; // Bulan JS mulai dari 0
-    const tgl = parseInt(m[2]);
-    const jam = parseInt(m[3] || 0);
-    const mnt = parseInt(m[4] || 0);
-    const dtk = parseInt(m[5] || 0);
-
-    // Rakit menggunakan constructor Date manual agar stabil di semua browser
-    return new Date(thn, bln, tgl, jam, mnt, dtk);
+    return new Date(m[0], parseInt(m[1]) - 1, m[2], parseInt(m[3] || 0), parseInt(m[4] || 0));
   };
 
-  // Urutkan berdasarkan waktu masuk (Kronologis)
-  rekapOrders.sort((a, b) => formatStandardDate(a.entryDate).getTime() - formatStandardDate(b.entryDate).getTime());
+  /** 
+   * DISESUAIKAN: 
+   * Mengurutkan berdasarkan ID format 6 digit (ORD-000001)
+   */
+  rekapOrders.sort((a, b) => {
+    const idA = (a.id || "").toUpperCase();
+    const idB = (b.id || "").toUpperCase();
+    return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
+  });
 
   const stages = ['Desain', 'Cetak', 'Finishing', 'Packing'];
   let teksRekap = `📝 *LIST ORDERAN ${namaBulanHeader}*\n`;
   teksRekap += `--------------------------\n`;
 
   rekapOrders.forEach((order, index) => {
+    /** 
+     * DISESUAIKAN: 
+     * Format waktu hanya [Tgl/Bln] tanpa Jam sesuai permintaan
+     */
     let infoWaktu = "";
     if (order.entryDate) {
       const d = formatStandardDate(order.entryDate);
       const tglStr = String(d.getDate()).padStart(2, '0');
       const blnStr = String(d.getMonth() + 1).padStart(2, '0');
-      const jamStr = String(d.getHours()).padStart(2, '0');
-      const mntStr = String(d.getMinutes()).padStart(2, '0');
-      infoWaktu = `[${tglStr}/${blnStr} ${jamStr}:${mntStr}] `;
+      infoWaktu = `[${tglStr}/${blnStr}] `; 
     }
 
+    // Menggunakan index + 1 agar nomor urut di list WA tetap rapi
     let baris = `${index + 1}. ${infoWaktu}*${order.customer}*: ${order.jobName} ${order.quantity ? 'x' + order.quantity : ''}`;
 
     if (order.status === 'Selesai') {
@@ -952,7 +938,6 @@ function processOrderRekap(sendToTelegram = true) {
       }
       teksRekap += `${baris}\n\n`; 
     } else {
-      // Label status
       if (['Desain', 'Revisi'].includes(order.status)) {
         baris += ` _mau didesainkan_`;
       } else if (order.status === 'Konfirmasi') {
@@ -963,7 +948,6 @@ function processOrderRekap(sendToTelegram = true) {
         baris += ` _sedang diproses_`;
       }
 
-      // Progress bar manual
       const progressVisual = stages.map((stage) => {
         let isDone = false;
         if (stage === 'Desain') {
