@@ -525,12 +525,15 @@ function selectTransaction(index) {
   
   if (items.length === 0) return;
 
-  // 1. Nama Pekerjaan: Hanya item pertama saja
+  // 1. Nama Pekerjaan: Tetap mengambil item pertama (sesuai logika asli)
   const firstItemName = items[0].nama;
   const firstItemQty = items[0].qty;
 
-  // 2. Format Kelengkapan Bahan: TRX-ID: Item (xQty), ...
-  const allItemsText = `${data.id}: ` + items.map(it => `${it.nama} (x${it.qty})`).join(', ');
+  // 2. Format Kelengkapan Bahan: Filter kategori yang BUKAN "TTH"
+  const filteredItems = items.filter(it => it.kategori !== "TTH");
+  
+  const allItemsText = `${data.id}: ` + 
+    filteredItems.map(it => `${it.nama} (x${it.qty})`).join(', ');
 
   // Isi ke Form
   const form = document.getElementById('add-order-form');
@@ -538,16 +541,17 @@ function selectTransaction(index) {
   form.elements['jobName'].value = firstItemName;
   form.elements['quantity'].value = firstItemQty;
   
-  // Masukkan ke Kelengkapan Bahan
+  // Masukkan ke Kelengkapan Bahan (Hasil Filter)
   form.elements['equipment'].value = allItemsText;
   
-  // Kosongkan catatan tambahan (ID sudah pindah ke Kelengkapan)
+  // Kosongkan catatan tambahan
   form.elements['description'].value = "";
 
   closeImportModal();
   showToast("✓ Data berhasil diimport ke Kelengkapan!");
 }
 
+    
 function closeImportModal() {
   document.getElementById('import-modal').classList.add('hidden');
   document.getElementById('search-import').value = "";
