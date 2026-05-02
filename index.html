@@ -1003,19 +1003,29 @@ function renderList(targetId, orders, showDeadline) {
     return;
   }
 
-  // Tahapan baru sesuai permintaan Anda (Selesai dihapus dari tracker)
   const stages = ['Desain', 'Revisi', 'Konfirmasi', 'Cetak', 'Finishing', 'Packing', 'Kirim'];
 
   listEl.innerHTML = orders.map(order => {
-    // Mencari posisi status saat ini
     const currentIndex = stages.indexOf(order.status);
     
+    // --- LOGIKA PENGECEKAN KELENGKAPAN ---
+    const rawEquip = order.equipment || ""; // Kolom L[cite: 1]
+    const checkedEquip = (order.checkedEquipment || "").toLowerCase(); // Kolom M[cite: 1]
+    let isComplete = true;
+
+    if (rawEquip.includes(':')) {
+      const itemsPart = rawEquip.split(':')[1];
+      const itemsArray = itemsPart.split(',').map(i => i.trim().toLowerCase());
+      
+      // Jika ada satu saja item dari Kolom L yang tidak ada di Kolom M, maka Belum Lengkap
+      isComplete = itemsArray.every(item => checkedEquip.includes(item));
+    }
+
     const progressHTML = `
       <div class="progress-container mb-6">
         <div class="progress-line"></div>
         ${stages.map((stage, index) => {
           let statusClass = '';
-          // Logika Warna: Biru jika sudah lewat, Merah jika sedang berjalan
           if (index < currentIndex) statusClass = 'completed'; 
           else if (index === currentIndex) statusClass = 'current'; 
           
@@ -1028,18 +1038,20 @@ function renderList(targetId, orders, showDeadline) {
       </div>
     `;
 
- return `
+    return `
       <div onclick="openDetail('${order.id}')" class="order-card priority-${(order.priority || 'normal').toLowerCase().replace(' ', '-')} shadow-sm">
         <div class="flex justify-between items-start gap-4">
           <div class="flex-1 min-w-0">
-            <p class="text-[9px] text-gray-400 font-mono font-bold mb-1">${order.id}</p>
+            <div class="flex items-center gap-2 mb-1">
+              <p class="text-[9px] text-gray-400 font-mono font-bold">${order.id}</p>
+              ${!isComplete ? `<span class="text-[8px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-black uppercase tracking-tighter animate-pulse">⚠️ Belum Lengkap</span>` : ''}
+            </div>
             <h3 class="font-bold text-gray-900 leading-tight truncate">${order.customer}</h3>
             <p class="text-xs text-blue-600 font-bold truncate">${order.jobname || order.jobName}</p>
           </div>
           
           <div class="text-right shrink-0 flex flex-col items-end gap-1">
             ${(showDeadline && order.status !== 'Kirim') ? `
-              <!-- Label Deadline Final -->
               <div class="flex flex-col items-end">
                 <span class="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Deadline Final</span>
                 <div class="text-[10px] font-black text-red-600 uppercase italic leading-none">
@@ -1047,7 +1059,6 @@ function renderList(targetId, orders, showDeadline) {
                 </div>
               </div>
               
-              <!-- Label Target Tahap -->
               <div class="flex flex-col items-end mt-1">
                 <span class="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Target ${order.status}</span>
                 <div class="text-[9px] font-bold text-blue-600 uppercase leading-tight bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
@@ -1064,7 +1075,6 @@ function renderList(targetId, orders, showDeadline) {
           </div>
         </div>
 
-        <!-- Progress Tracker: 7 Tahapan Aktif -->
         <div class="mt-4">
           ${progressHTML}
         </div>
@@ -1081,7 +1091,7 @@ function renderList(targetId, orders, showDeadline) {
     `;
   }).join('');
   lucide.createIcons();
-  }
+}
     
     function showToast(msg) {
       const toast = document.getElementById("toast");
