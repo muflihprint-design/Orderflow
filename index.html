@@ -1051,14 +1051,16 @@ function processOrderRekap(sendToTelegram = true) {
 
   const bulanNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
   const sekarang = new Date();
+  sekarang.setHours(0, 0, 0, 0); // Mulai dari awal hari ini
+  
   const bulanIni = sekarang.getMonth();
   const tahunIni = sekarang.getFullYear();
   const namaBulanHeader = bulanNames[bulanIni].toUpperCase();
   
-  // LOGIKA BARU: Batas waktu adalah kurang dari 4 hari (sampai akhir hari ke-3)
-  const empatHariLagi = new Date();
-  empatHariLagi.setDate(sekarang.getDate() + 4);
-  empatHariLagi.setHours(0, 0, 0, 0); // Batas eksklusif (di bawah 4 hari)
+  // LOGIKA BARU: Ambil s/d 2 hari ke depan (Hari ini + 2 hari = 3 hari total)
+  const batasUrgent = new Date();
+  batasUrgent.setDate(sekarang.getDate() + 2);
+  batasUrgent.setHours(23, 59, 59, 999); // Akhir hari lusa
 
   let urgentCount = 0;
   let urgentQty = 0;
@@ -1067,8 +1069,8 @@ function processOrderRekap(sendToTelegram = true) {
   allOrders.forEach(order => {
     if (order.status !== 'Selesai' && order.status !== 'Kirim' && order.finalDeadline) {
       const dDeadline = new Date(order.finalDeadline);
-      // Memeriksa jika deadline masih di masa depan DAN kurang dari 4 hari dari sekarang
-      if (dDeadline >= sekarang && dDeadline < empatHariLagi) {
+      // Memeriksa jika deadline dalam rentang hari ini s/d lusa
+      if (dDeadline >= sekarang && dDeadline <= batasUrgent) {
         urgentCount++;
         urgentQty += parseInt(order.quantity || 0);
       }
@@ -1109,8 +1111,8 @@ function processOrderRekap(sendToTelegram = true) {
 
   const stages = ['Desain', 'Cetak', 'Finishing', 'Packing'];
   
-  // UPDATE TEXT HEADER: Menjadi 3 Hari
-  let teksRekap = `🚨 *URGENT - DEADLINE 3 HARI KE DEPAN*\n`;
+  // UPDATE TEXT HEADER: Menjadi S/D 2 HARI KE DEPAN
+  let teksRekap = `🚨 *URGENT - DEADLINE S/D 2 HARI KE DEPAN*\n`;
   teksRekap += `📦 Total Order: ${urgentCount} Order\n`;
   teksRekap += `🔢 Total Qty  : ${urgentQty.toLocaleString()}\n`;
   teksRekap += `--------------------------\n\n`;
@@ -1132,8 +1134,8 @@ function processOrderRekap(sendToTelegram = true) {
     
     if (order.finalDeadline && !['Selesai', 'Kirim'].includes(order.status)) {
       const dDeadline = new Date(order.finalDeadline);
-      // Konsisten dengan logika header: < 4 hari
-      if (dDeadline < empatHariLagi) {
+      // Konsisten dengan logika header: hari ini s/d lusa
+      if (dDeadline >= sekarang && dDeadline <= batasUrgent) {
         isUrgentList = true;
         urgentIcon = "💓 "; 
       }
@@ -1185,6 +1187,7 @@ function processOrderRekap(sendToTelegram = true) {
     fetch(url).then(res => { if(res.ok) showToast("✓ Rekap terkirim!"); });
   }
 }
+    
     // Fungsi untuk memuat data di awal (background process)
 async function preloadSheetData() {
   const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvAQXltAVp8lnrXXVVPJr1hYEi8cAJrqz182qT23eaiI8t-MoBrEtE7bAAJqKEyKKTig4hpA9DNuQB/pub?gid=2057149863&single=true&output=csv";
