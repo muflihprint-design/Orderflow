@@ -500,19 +500,23 @@ function selectTransaction(index) {
   
   if (items.length === 0) return;
 
+  // Logika Nama Pekerjaan & Qty (tetap sama)
   let mainJobName = items[0].nama;
   let mainQty = items[0].qty;
   let additionalJobs = items.slice(1).map(it => `${it.nama} x ${it.qty}`).join(', ');
-  
   const finalJobName = additionalJobs ? `${mainJobName} (${additionalJobs})` : mainJobName;
 
+  // Isi Form
   const form = document.getElementById('add-order-form');
   form.elements['customer'].value = data.customer;
   form.elements['jobName'].value = finalJobName;
   form.elements['quantity'].value = mainQty;
+  
+  // MASUKKAN ID KE CATATAN TAMBAH (Field: description)
+  form.elements['description'].value = `ID Transaksi: ${data.id}`;
 
   closeImportModal();
-  showToast("✓ Data terpilih!");
+  showToast("✓ Data & ID Transaksi berhasil diimport!");
 }
 
 function closeImportModal() {
@@ -1171,44 +1175,32 @@ async function preloadSheetData() {
   
   try {
     const response = await fetch(sheetUrl);
-    if (!response.ok) throw new Error('Network response was not ok');
     const csvText = await response.text();
     const rows = csvText.split('\n').filter(row => row.trim() !== "");
-    
     const validData = [];
     
-    // Mulai dari indeks 1 untuk melewati header
     for (let i = 1; i < rows.length; i++) {
       const cols = parseCSVRow(rows[i]);
-      
-      // Ambil Kategori dari kolom D (Indeks 3)
+      const trxId = cols[0] ? cols[0].trim() : ""; // Kolom A (Indeks 0)
       const kategori = cols[3] ? cols[3].trim() : "";
       const jsonStr = cols[10] ? cols[10].trim() : "";
       
-      // FILTER: Hanya ambil jika Kategori adalah "Penjualan" DAN Kolom K berisi JSON valid
       if (kategori === "Penjualan" && jsonStr.startsWith('[')) {
         try {
           const items = JSON.parse(jsonStr);
           validData.push({
+            id: trxId, // Simpan ID Transaksi
             customer: cols[8] || "Tanpa Nama",
-            items: items,
-            rawItems: jsonStr
+            items: items
           });
-        } catch (e) {
-          // Lewati jika format JSON rusak
-          continue;
-        }
+        } catch (e) { continue; }
       }
     }
-
-    // Urutkan transaksi terbaru di posisi paling atas
     rawSheetData = validData.reverse(); 
-    console.log("Sinkronisasi Berhasil: " + rawSheetData.length + " transaksi Penjualan dimuat.");
-    
-  } catch (err) {
-    console.error("Gagal sinkron data spreadsheet:", err);
-  }
+    console.log("Data siap: " + rawSheetData.length + " transaksi.");
+  } catch (err) { console.error(err); }
 }
+    
 // Perbarui fungsi buka modal agar lebih responsif
 async function openImportModal() {
   const modal = document.getElementById('import-modal');
