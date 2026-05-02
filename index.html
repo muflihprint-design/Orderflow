@@ -862,7 +862,7 @@ function renderList(targetId, orders, showDeadline) {
           
           <div class="text-right shrink-0">
             <span class="status-badge block mb-1 ${getStatusColor(order.status)}">${order.status}</span>
-            ${showDeadline ? `
+        ${(showDeadline && order.status !== 'Kirim') ? `
               <div class="text-[11px] font-black text-red-600 uppercase italic leading-tight">
                 Final: ${getDeadlineLabel(order.finalDeadline)}
               </div>
