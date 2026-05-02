@@ -900,12 +900,10 @@ function processOrderRekap(sendToTelegram = true) {
   const tahunIni = sekarang.getFullYear();
   const namaBulanHeader = bulanNames[bulanIni].toUpperCase();
   
-  // Batas 3 hari lagi (Urgent Report)
   const tigaHariLagi = new Date();
   tigaHariLagi.setDate(sekarang.getDate() + 3);
   tigaHariLagi.setHours(23, 59, 59, 999);
 
-  // Batas 4 hari lagi (Untuk penebalan font di list)
   const empatHariLagi = new Date();
   empatHariLagi.setDate(sekarang.getDate() + 4);
 
@@ -973,17 +971,19 @@ function processOrderRekap(sendToTelegram = true) {
 
     let qtyText = order.quantity ? `x${order.quantity},` : ",";
     
-    // --- LOGIKA PENEBALAN FONT ---
+    // --- LOGIKA ICON & PENEBALAN URGENT ---
     let isUrgentList = false;
+    let urgentIcon = ""; 
+    
     if (order.finalDeadline && !['Selesai', 'Kirim'].includes(order.status)) {
       const dDeadline = new Date(order.finalDeadline);
       if (dDeadline <= empatHariLagi) {
         isUrgentList = true;
+        urgentIcon = "⚡ "; // Tambahkan icon petir untuk urgent
       }
     }
 
-    let contentHeader = `${infoWaktu}${order.customer}: ${order.jobName} ${qtyText}`;
-    // Jika urgent, bungkus dengan asteris (*) untuk Markdown Bold
+    let contentHeader = `${infoWaktu}${urgentIcon}${order.customer}: ${order.jobName} ${qtyText}`;
     let barisHeader = isUrgentList ? `${index + 1}. *${contentHeader}*` : `${index + 1}. ${contentHeader}`;
     
     let infoTarget = order.finalDeadline ? ` Target Selesai tgl ${formatWithMonth(new Date(order.finalDeadline))}` : "";
@@ -1018,10 +1018,12 @@ function processOrderRekap(sendToTelegram = true) {
     }
   });
 
+  // Copy to clipboard
   navigator.clipboard.writeText(teksRekap).then(() => {
     if (!sendToTelegram) showToast("Rekap disalin!");
   });
 
+  // Send to Telegram
   if (sendToTelegram) {
     const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U';
     const chatId = '-5026846679';
