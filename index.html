@@ -1171,33 +1171,44 @@ async function preloadSheetData() {
   
   try {
     const response = await fetch(sheetUrl);
-    if (!response.ok) throw new Error('Respon server tidak oke');
-    
+    if (!response.ok) throw new Error('Network response was not ok');
     const csvText = await response.text();
     const rows = csvText.split('\n').filter(row => row.trim() !== "");
     
-    rawSheetData = rows.slice(1).map(row => {
-      const cols = parseCSVRow(row);
-      // Validasi kolom K (indeks 10) sebelum JSON parse
-      let items = [];
-      try {
-        items = JSON.parse(cols[10] || "[]");
-      } catch(e) { console.error("Format JSON salah pada baris:", row); }
-      
-      return {
-        customer: cols[8] || "Tanpa Nama",
-        items: items,
-        rawItems: cols[10]
-      };
-    }).reverse(); 
+    const validData = [];
     
-    console.log("Data berhasil dimuat:", rawSheetData.length);
+    // Mulai dari indeks 1 untuk melewati header
+    for (let i = 1; i < rows.length; i++) {
+      const cols = parseCSVRow(rows[i]);
+      
+      // Ambil Kategori dari kolom D (Indeks 3)
+      const kategori = cols[3] ? cols[3].trim() : "";
+      const jsonStr = cols[10] ? cols[10].trim() : "";
+      
+      // FILTER: Hanya ambil jika Kategori adalah "Penjualan" DAN Kolom K berisi JSON valid
+      if (kategori === "Penjualan" && jsonStr.startsWith('[')) {
+        try {
+          const items = JSON.parse(jsonStr);
+          validData.push({
+            customer: cols[8] || "Tanpa Nama",
+            items: items,
+            rawItems: jsonStr
+          });
+        } catch (e) {
+          // Lewati jika format JSON rusak
+          continue;
+        }
+      }
+    }
+
+    // Urutkan transaksi terbaru di posisi paling atas
+    rawSheetData = validData.reverse(); 
+    console.log("Sinkronisasi Berhasil: " + rawSheetData.length + " transaksi Penjualan dimuat.");
+    
   } catch (err) {
     console.error("Gagal sinkron data spreadsheet:", err);
-    // Tampilkan pesan error di UI jika perlu
   }
 }
-
 // Perbarui fungsi buka modal agar lebih responsif
 async function openImportModal() {
   const modal = document.getElementById('import-modal');
