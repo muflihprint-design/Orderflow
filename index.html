@@ -899,7 +899,27 @@ function processOrderRekap(sendToTelegram = true) {
   const bulanIni = sekarang.getMonth();
   const tahunIni = sekarang.getFullYear();
   const namaBulanHeader = bulanNames[bulanIni].toUpperCase();
-  
+
+  // --- LOGIKA TAMBAHAN: HITUNG DEADLINE 3 HARI LAGI ---
+  const tigaHariLagi = new Date();
+  tigaHariLagi.setDate(sekarang.getDate() + 3);
+  tigaHariLagi.setHours(23, 59, 59, 999); // Set ke akhir hari
+
+  let urgentCount = 0;
+  let urgentQty = 0;
+
+  allOrders.forEach(order => {
+    if (order.status !== 'Selesai' && order.finalDeadline) {
+      const dDeadline = new Date(order.finalDeadline);
+      // Cek jika deadline adalah hari ini sampai 3 hari ke depan
+      if (dDeadline >= sekarang && dDeadline <= tigaHariLagi) {
+        urgentCount++;
+        urgentQty += parseInt(order.quantity || 0);
+      }
+    }
+  });
+  // ---------------------------------------------------
+
   const rekapOrders = allOrders.filter(order => {
     const tglSelesai = order.finalDeadline ? new Date(order.finalDeadline) : null;
     if (order.status !== 'Selesai') return true;
@@ -933,7 +953,14 @@ function processOrderRekap(sendToTelegram = true) {
   });
 
   const stages = ['Desain', 'Cetak', 'Finishing', 'Packing'];
-  let teksRekap = `📝 *LIST ORDERAN ${namaBulanHeader}*\n`;
+
+  // --- BAGIAN ATAS LAPORAN BARU ---
+  let teksRekap = `🚨 *URGENT - DEADLINE 3 HARI KE DEPAN*\n`;
+  teksRekap += `📦 Total Order: ${urgentCount} Order\n`;
+  teksRekap += `🔢 Total Qty  : ${urgentQty.toLocaleString()}\n`;
+  teksRekap += `--------------------------\n\n`;
+  
+  teksRekap += `📝 *LIST ORDERAN ${namaBulanHeader}*\n`;
   teksRekap += `--------------------------\n`;
 
   rekapOrders.forEach((order, index) => {
@@ -943,7 +970,6 @@ function processOrderRekap(sendToTelegram = true) {
       infoWaktu = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} `; 
     }
 
-    // PERBAIKAN: Penambahan koma setelah quantity
     let qtyText = order.quantity ? `x${order.quantity},` : ",";
     let barisHeader = `${index + 1}. ${infoWaktu}${order.customer}: ${order.jobName} ${qtyText}`;
     let infoTarget = order.finalDeadline ? ` Target Selesai tgl ${formatWithMonth(new Date(order.finalDeadline))}` : "";
