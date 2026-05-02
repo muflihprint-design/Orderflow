@@ -893,14 +893,11 @@ function processOrderRekap(sendToTelegram = true) {
     return;
   }
 
-  // --- PERBAIKAN LOGIKA URUTAN ---
+  // PENGURUTAN: Berdasarkan waktu masuk (Jam & Menit) dari yang paling lama
   rekapOrders.sort((a, b) => {
-    // Pastikan format "2026-05-02 7:58:15" diproses dengan benar
-    // Menggunakan getTime() untuk membandingkan milidetik murni
     const waktuA = a.entryDate ? new Date(a.entryDate.replace(/-/g, "/")).getTime() : 0;
     const waktuB = b.entryDate ? new Date(b.entryDate.replace(/-/g, "/")).getTime() : 0;
-    
-    return waktuA - waktuB; // Dari yang paling lama (pagi) ke yang terbaru (sore)
+    return waktuA - waktuB; 
   });
 
   const stages = ['Desain', 'Cetak', 'Finishing', 'Packing'];
@@ -909,7 +906,14 @@ function processOrderRekap(sendToTelegram = true) {
   teksRekap += `--------------------------\n`;
 
   rekapOrders.forEach((order, index) => {
-    let baris = `${index + 1}. *${order.customer}*: ${order.jobName} ${order.quantity ? 'x' + order.quantity : ''}`;
+    // FORMAT BARU: [Tgl] Nama: Pekerjaan
+    let tglMasuk = "";
+    if (order.entryDate) {
+      const d = new Date(order.entryDate.replace(/-/g, "/"));
+      tglMasuk = `[${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}] `;
+    }
+
+    let baris = `${index + 1}. ${tglMasuk}*${order.customer}*: ${order.jobName} ${order.quantity ? 'x' + order.quantity : ''}`;
 
     if (order.status === 'Selesai') {
       if (order.finalDeadline) {
