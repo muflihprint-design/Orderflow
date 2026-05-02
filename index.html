@@ -899,9 +899,6 @@ function processOrderRekap(sendToTelegram = true) {
     return new Date(m[0], parseInt(m[1]) - 1, m[2], parseInt(m[3] || 0), parseInt(m[4] || 0));
   };
 
-  /**
-   * Fungsi Helper untuk memformat tanggal dengan nama bulan jika berbeda bulan
-   */
   const formatWithMonth = (dateObj) => {
     if (!dateObj || isNaN(dateObj.getTime())) return "";
     const tgl = String(dateObj.getDate()).padStart(2, '0');
@@ -911,7 +908,6 @@ function processOrderRekap(sendToTelegram = true) {
     return tgl;
   };
 
-  // Urutkan berdasarkan ID (Nomor Urut ORD-000001)
   rekapOrders.sort((a, b) => {
     const idA = (a.id || "").toUpperCase();
     const idB = (b.id || "").toUpperCase();
@@ -929,25 +925,24 @@ function processOrderRekap(sendToTelegram = true) {
       infoWaktu = `[${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}] `; 
     }
 
-    let baris = `${index + 1}. ${infoWaktu}*${order.customer}*: ${order.jobName} ${order.quantity ? 'x' + order.quantity : ''}`;
-
-    // Info Target Selesai (Final Deadline)
-    let infoTarget = order.finalDeadline ? ` Target Selesai tgl ${formatWithMonth(new Date(order.finalDeadline))}` : "";
+    let barisHeader = `${index + 1}. ${infoWaktu}*${order.customer}*: ${order.jobName} ${order.quantity ? 'x' + order.quantity : ''}`;
+    let infoTarget = order.finalDeadline ? `, Target Selesai tgl ${formatWithMonth(new Date(order.finalDeadline))}` : "";
 
     if (order.status === 'Selesai') {
-      // FORMAT SELESAI: Nama: Pekerjaan ✅ Target Selesai tgl XX
-      baris += ` ✅${infoTarget}`;
-      teksRekap += `${baris}\n\n`; 
-    } else {
-      // FORMAT PROSES: Nama: Pekerjaan _Estimasi Selesai [Tahap] tgl XX_
+      // FORMAT SELESAI: Nama: Pekerjaan, Target Selesai tgl XX ✅
+      teksRekap += `${barisHeader}${infoTarget} ✅\n\n`; 
+    } 
+    else if (order.status === 'Kirim') {
+      // FORMAT KIRIM: Nama: Pekerjaan, _siap dikirim/ambil_, Target Selesai tgl XX ✅
+      teksRekap += `${barisHeader}, _siap dikirim/ambil_${infoTarget} ✅\n\n`;
+    } 
+    else {
+      // FORMAT PROSES LAINNYA
       let estimasiTahap = "";
-      if (!['Kirim', 'Selesai'].includes(order.status) && order.statusDeadline) {
+      if (order.statusDeadline) {
         estimasiTahap = ` _Estimasi Selesai ${order.status} tgl ${formatWithMonth(new Date(order.statusDeadline))}_`;
       }
       
-      baris += estimasiTahap;
-
-      // Progress bar manual
       const progressVisual = stages.map((stage) => {
         let isDone = false;
         if (stage === 'Desain') {
@@ -955,16 +950,14 @@ function processOrderRekap(sendToTelegram = true) {
         } else {
           let effStatus = order.status;
           if (order.status === 'Konfirmasi') effStatus = 'Cetak';
-          if (order.status === 'Kirim') effStatus = 'Selesai';
           const currentIndex = stages.indexOf(effStatus);
           const stageIndex = stages.indexOf(stage);
-          isDone = order.status === 'Kirim' ? true : (currentIndex > stageIndex && currentIndex !== -1);
+          isDone = currentIndex > stageIndex && currentIndex !== -1;
         }
         return isDone ? `${stage}✅` : stage;
       }).join(', ');
 
-      // Tambahkan progress bar dan target selesai di bawah baris utama
-      teksRekap += `${baris}\n   (${progressVisual})${infoTarget}\n\n`;
+      teksRekap += `${barisHeader}${estimasiTahap}\n   (${progressVisual})${infoTarget}\n\n`;
     }
   });
 
