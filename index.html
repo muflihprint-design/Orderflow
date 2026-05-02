@@ -896,36 +896,25 @@ function processOrderRekap(sendToTelegram = true) {
     return false;
   });
 
-  if (rekapOrders.length === 0) {
-    showToast("Tidak ada antrian aktif.");
-    return;
-  }
-
-  /**
-   * FUNGSI PARSING STABIL
-   * Menangani format "2026-05-02 8:43:27" 
-   * (Meskipun jam tidak pakai angka 0 di depan)
-   */
-  const parseDate = (dateStr) => {
+  // FUNGSI BARU: Menulis ulang string tanggal agar standar (Anti-Gagal)
+  const formatStandardDate = (dateStr) => {
     if (!dateStr) return new Date(0);
-    
-    // Cari semua deretan angka (Tahun, Bulan, Tgl, Jam, Menit, Detik)
     const m = String(dateStr).match(/\d+/g);
     if (!m || m.length < 3) return new Date(0);
 
-    // Rakit manual: new Date(thn, bln-1, tgl, jam, mnt, dtk)
-    return new Date(
-      parseInt(m[0]),      // Tahun
-      parseInt(m[1]) - 1,  // Bulan (JS mulai dari 0)
-      parseInt(m[2]),      // Tanggal
-      parseInt(m[3] || 0), // Jam (akan membaca '8' menjadi 8)
-      parseInt(m[4] || 0), // Menit
-      parseInt(m[5] || 0)  // Detik
-    );
+    // Memastikan Jam, Menit, Detik selalu ada dan dipadu dengan nol jika cuma 1 digit
+    const thn = m[0];
+    const bln = m[1].padStart(2, '0');
+    const tgl = m[2].padStart(2, '0');
+    const jam = (m[3] || "0").padStart(2, '0');
+    const mnt = (m[4] || "0").padStart(2, '0');
+    const dtk = (m[5] || "0").padStart(2, '0');
+
+    // Menghasilkan format ISO: YYYY-MM-DDTHH:mm:ss
+    return new Date(`${thn}-${bln}-${tgl}T${jam}:${mnt}:${dtk}`);
   };
 
-  // PENGURUTAN: Berdasarkan waktu masuk dari yang paling awal (Kronologis)
-  rekapOrders.sort((a, b) => parseDate(a.entryDate).getTime() - parseDate(b.entryDate).getTime());
+  rekapOrders.sort((a, b) => formatStandardDate(a.entryDate).getTime() - formatStandardDate(b.entryDate).getTime());
 
   const stages = ['Desain', 'Cetak', 'Finishing', 'Packing'];
   let teksRekap = `📝 *LIST ORDERAN ${namaBulanHeader}*\n`;
@@ -934,12 +923,12 @@ function processOrderRekap(sendToTelegram = true) {
   rekapOrders.forEach((order, index) => {
     let infoWaktu = "";
     if (order.entryDate) {
-      const d = parseDate(order.entryDate);
-      const tgl = String(d.getDate()).padStart(2, '0');
-      const bln = String(d.getMonth() + 1).padStart(2, '0');
-      const jam = String(d.getHours()).padStart(2, '0');
-      const mnt = String(d.getMinutes()).padStart(2, '0');
-      infoWaktu = `[${tgl}/${bln} ${jam}:${mnt}] `;
+      const d = formatStandardDate(order.entryDate);
+      const tglStr = String(d.getDate()).padStart(2, '0');
+      const blnStr = String(d.getMonth() + 1).padStart(2, '0');
+      const jamStr = String(d.getHours()).padStart(2, '0');
+      const mntStr = String(d.getMinutes()).padStart(2, '0');
+      infoWaktu = `[${tglStr}/${blnStr} ${jamStr}:${mntStr}] `;
     }
 
     let baris = `${index + 1}. ${infoWaktu}*${order.customer}*: ${order.jobName} ${order.quantity ? 'x' + order.quantity : ''}`;
@@ -953,7 +942,7 @@ function processOrderRekap(sendToTelegram = true) {
       }
       teksRekap += `${baris}\n\n`; 
     } else {
-      // Label status pengerjaan
+      // Label status
       if (['Desain', 'Revisi'].includes(order.status)) {
         baris += ` _mau didesainkan_`;
       } else if (order.status === 'Konfirmasi') {
@@ -964,24 +953,16 @@ function processOrderRekap(sendToTelegram = true) {
         baris += ` _sedang diproses_`;
       }
 
-      if (order.statusDeadline) {
-        const tglTahap = new Date(order.statusDeadline).getDate();
-        baris += `, estimasi selesai ${order.status.toLowerCase()} tggl ${tglTahap}`;
-      }
-      if (order.finalDeadline) {
-        const tglFinal = new Date(order.finalDeadline).getDate();
-        baris += `, estimasi selesai pesanan tggl ${tglFinal}`;
-      }
-
+      // Progress bar manual
       const progressVisual = stages.map((stage) => {
         let isDone = false;
         if (stage === 'Desain') {
           isDone = !['Desain', 'Revisi'].includes(order.status);
         } else {
-          let effectiveStatus = order.status;
-          if (order.status === 'Konfirmasi') effectiveStatus = 'Cetak';
-          if (order.status === 'Kirim') effectiveStatus = 'Selesai';
-          const currentIndex = stages.indexOf(effectiveStatus);
+          let effStatus = order.status;
+          if (order.status === 'Konfirmasi') effStatus = 'Cetak';
+          if (order.status === 'Kirim') effStatus = 'Selesai';
+          const currentIndex = stages.indexOf(effStatus);
           const stageIndex = stages.indexOf(stage);
           isDone = order.status === 'Kirim' ? true : (currentIndex > stageIndex && currentIndex !== -1);
         }
