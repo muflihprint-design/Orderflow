@@ -467,6 +467,7 @@ function showLoadingState(targetId) {
 }
     
     function switchTab(tabId) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
       
