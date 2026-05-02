@@ -458,36 +458,6 @@
 let rawSheetData = [];
 
 // Fungsi untuk membuka modal dan mengambil data
-async function openImportModal() {
-  const modal = document.getElementById('import-modal');
-  modal.classList.remove('hidden');
-  const container = document.getElementById('import-list-container');
-  container.innerHTML = '<div class="py-10 text-center text-gray-400">Sedang menyinkronkan data...</div>';
-
-  const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvAQXltAVp8lnrXXVVPJr1hYEi8cAJrqz182qT23eaiI8t-MoBrEtE7bAAJqKEyKKTig4hpA9DNuQB/pub?gid=2057149863&single=true&output=csv";
-
-  try {
-    const response = await fetch(sheetUrl);
-    const csvText = await response.text();
-    const rows = csvText.split('\n').filter(row => row.trim() !== "");
-    
-    // Lewati header, ambil data
-    rawSheetData = rows.slice(1).map(row => {
-      const cols = parseCSVRow(row);
-      const items = JSON.parse(cols[10] || "[]");
-      return {
-        customer: cols[8],
-        items: items,
-        rawItems: cols[10]
-      };
-    }).reverse(); // Urutkan dari yang terbaru
-
-    renderImportList(rawSheetData);
-    lucide.createIcons();
-  } catch (err) {
-    container.innerHTML = '<div class="py-10 text-center text-red-500">Gagal mengambil data.</div>';
-  }
-}
 
 // Fungsi untuk menampilkan daftar di modal
 function renderImportList(data) {
@@ -1195,8 +1165,58 @@ function processOrderRekap(sendToTelegram = true) {
     fetch(url).then(res => { if(res.ok) showToast("✓ Rekap terkirim!"); });
   }
 }
+    // Fungsi untuk memuat data di awal (background process)
+async function preloadSheetData() {
+  const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvAQXltAVp8lnrXXVVPJr1hYEi8cAJrqz182qT23eaiI8t-MoBrEtE7bAAJqKEyKKTig4hpA9DNuQB/pub?gid=2057149863&single=true&output=csv";
+  
+  try {
+    const response = await fetch(sheetUrl);
+    const csvText = await response.text();
+    const rows = csvText.split('\n').filter(row => row.trim() !== "");
     
-    window.onload = loadOrders;
+    // Simpan ke variabel global rawSheetData
+    rawSheetData = rows.slice(1).map(row => {
+      const cols = parseCSVRow(row);
+      const items = JSON.parse(cols[10] || "[]");
+      return {
+        customer: cols[8],
+        items: items,
+        rawItems: cols[10]
+      };
+    }).reverse(); 
+
+    console.log("Sheet data preloaded: " + rawSheetData.length + " items");
+  } catch (err) {
+    console.error("Gagal preload data sheet:", err);
+  }
+}
+
+// Perbarui fungsi buka modal agar lebih responsif
+async function openImportModal() {
+  const modal = document.getElementById('import-modal');
+  modal.classList.remove('hidden');
+  
+  // Jika data sudah ada (hasil preload), langsung tampilkan
+  if (rawSheetData.length > 0) {
+    renderImportList(rawSheetData);
+  } else {
+    // Jika karena suatu alasan data belum ada, baru tarik lagi
+    await preloadSheetData();
+    renderImportList(rawSheetData);
+  }
+  
+  lucide.createIcons();
+  
+  // Animasi masuk modal
+  setTimeout(() => {
+    modal.querySelector('.bg-white').classList.add('opacity-100');
+  }, 10);
+}
+    
+   window.onload = () => {
+  loadOrders();         // Memuat data antrian utama (Apps Script)
+  preloadSheetData();   // Memuat data transaksi (Spreadsheet) di latar belakang
+};
   </script>
   <div id="toast"></div>
 </body>
