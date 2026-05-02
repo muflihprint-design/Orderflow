@@ -660,66 +660,66 @@ function showLoadingState(targetId) {
 }
     
 async function handleFormSubmit(e) {
-  e.preventDefault();[cite: 1]
+  e.preventDefault();
   
-  const btn = document.getElementById('submit-btn');[cite: 1]
-  const originalContent = btn.innerHTML;[cite: 1]
-  btn.disabled = true;[cite: 1]
-  btn.classList.add('opacity-70', 'cursor-not-allowed');[cite: 1]
-  btn.innerHTML = '<i class="animate-spin mr-2" data-lucide="loader-2"></i> MENYIMPAN...';[cite: 1]
-  if (window.lucide) lucide.createIcons();[cite: 1]
+  const btn = document.getElementById('submit-btn');
+  const originalContent = btn.innerHTML;
+  btn.disabled = true;
+  btn.classList.add('opacity-70', 'cursor-not-allowed');
+  btn.innerHTML = '<i class="animate-spin mr-2" data-lucide="loader-2"></i> MENYIMPAN...';
+  if (window.lucide) lucide.createIcons();
 
-  const formData = new FormData(e.target);[cite: 1]
+  const formData = new FormData(e.target);
   
   /**
    * Mengambil data dari form termasuk field 'equipment'
    * Data ini akan dikirim ke Apps Script untuk mengisi Kolom L ("Equipment")
    */
   const orderData = {
-    action: 'addNewOrder',[cite: 1]
-    customer: formData.get('customer'),[cite: 1]
-    phone: formData.get('phone'),[cite: 1]
-    jobName: formData.get('jobName'),[cite: 1]
-    quantity: formData.get('quantity'),[cite: 1]
-    priority: formData.get('priority'),[cite: 1]
-    status: formData.get('status') || 'Desain',[cite: 1]
+    action: 'addNewOrder',
+    customer: formData.get('customer'),
+    phone: formData.get('phone'),
+    jobName: formData.get('jobName'),
+    quantity: formData.get('quantity'),
+    priority: formData.get('priority'),
+    status: formData.get('status') || 'Desain',
     equipment: formData.get('equipment'), // Menambahkan data Kelengkapan Bahan
-    description: formData.get('description'),[cite: 1]
-    finalDeadline: formData.get('finalDeadline'),[cite: 1]
-    statusDeadline: formData.get('statusDeadline')[cite: 1]
+    description: formData.get('description'),
+    finalDeadline: formData.get('finalDeadline'),
+    statusDeadline: formData.get('statusDeadline')
   };
 
   try {
-    const queryParams = new URLSearchParams(orderData).toString();[cite: 1]
-    const response = await fetch(`${WEB_APP_URL}?${queryParams}`);[cite: 1]
+    const queryParams = new URLSearchParams(orderData).toString();
+    const response = await fetch(`${WEB_APP_URL}?${queryParams}`);
     
-    if (!response.ok) throw new Error('Network response was not ok');[cite: 1]
+    if (!response.ok) throw new Error('Network response was not ok');
     
-    const result = await response.json();[cite: 1]
+    const result = await response.json();
 
     if (result.success) {
-      showToast("✓ Pesanan Tersimpan!");[cite: 1]
+      showToast("✓ Pesanan Tersimpan!");
       
-      e.target.reset();[cite: 1]
+      e.target.reset();
       
       // Memuat ulang data agar nomor urut ID terbaru muncul di list
-      await loadOrders();[cite: 1]
+      await loadOrders();
       
       // Jalankan rekap otomatis ke Telegram/Clipboard
-      processOrderRekap();[cite: 1]
+      processOrderRekap();
 
-      switchTab('antrian');[cite: 1]
+      switchTab('antrian');
     } else {
-      showToast("❌ Gagal: " + (result.error || "Gagal simpan"));[cite: 1]
+      showToast("❌ Gagal: " + (result.error || "Gagal simpan"));
     }
   } catch (err) {
-    console.error(err);[cite: 1]
-    showToast("❌ Gagal terhubung ke server");[cite: 1]
+    console.error(err);
+    showToast("❌ Gagal terhubung ke server");
   } finally {
-    btn.disabled = false;[cite: 1]
-    btn.classList.remove('opacity-70', 'cursor-not-allowed');[cite: 1]
-    btn.innerHTML = originalContent;[cite: 1]
-    if (window.lucide) lucide.createIcons();[cite: 1]
+    btn.disabled = false;
+    btn.classList.remove('opacity-70', 'cursor-not-allowed');
+    btn.innerHTML = originalContent;
+    if (window.lucide) lucide.createIcons();
   }
 }
     
