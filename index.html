@@ -893,12 +893,15 @@ function processOrderRekap(sendToTelegram = true) {
     return;
   }
 
-  // PENGURUTAN: Berdasarkan waktu masuk (Jam, Menit, Detik)
-  rekapOrders.sort((a, b) => {
-    const waktuA = a.entryDate ? new Date(a.entryDate.replace(/-/g, "/")).getTime() : 0;
-    const waktuB = b.entryDate ? new Date(b.entryDate.replace(/-/g, "/")).getTime() : 0;
-    return waktuA - waktuB; 
-  });
+  // Helper untuk membersihkan string tanggal agar jam terbaca (Ganti spasi dengan 'T')
+  const parseDate = (dateStr) => {
+    if (!dateStr) return new Date(0);
+    // Mengubah "2026-05-02 07:58:15" menjadi "2026-05-02T07:58:15"
+    return new Date(dateStr.replace(" ", "T").replace(/-/g, "/"));
+  };
+
+  // PENGURUTAN: Berdasarkan waktu masuk (Jam & Menit)
+  rekapOrders.sort((a, b) => parseDate(a.entryDate) - parseDate(b.entryDate));
 
   const stages = ['Desain', 'Cetak', 'Finishing', 'Packing'];
 
@@ -906,10 +909,9 @@ function processOrderRekap(sendToTelegram = true) {
   teksRekap += `--------------------------\n`;
 
   rekapOrders.forEach((order, index) => {
-    // FORMAT BARU: [Tgl - Jam] Nama: Pekerjaan
     let infoWaktu = "";
     if (order.entryDate) {
-      const d = new Date(order.entryDate.replace(/-/g, "/"));
+      const d = parseDate(order.entryDate);
       const tgl = String(d.getDate()).padStart(2, '0');
       const bln = String(d.getMonth() + 1).padStart(2, '0');
       const jam = String(d.getHours()).padStart(2, '0');
@@ -928,7 +930,6 @@ function processOrderRekap(sendToTelegram = true) {
       }
       teksRekap += `${baris}\n\n`; 
     } else {
-      // Keterangan status teks
       if (['Desain', 'Revisi'].includes(order.status)) {
         baris += ` _mau didesainkan_`;
       } else if (order.status === 'Konfirmasi') {
@@ -956,15 +957,9 @@ function processOrderRekap(sendToTelegram = true) {
           let effectiveStatus = order.status;
           if (order.status === 'Konfirmasi') effectiveStatus = 'Cetak';
           if (order.status === 'Kirim') effectiveStatus = 'Selesai';
-
           const currentIndex = stages.indexOf(effectiveStatus);
           const stageIndex = stages.indexOf(stage);
-          
-          if (order.status === 'Kirim') {
-            isDone = true;
-          } else {
-            isDone = currentIndex > stageIndex && currentIndex !== -1;
-          }
+          isDone = order.status === 'Kirim' ? true : (currentIndex > stageIndex && currentIndex !== -1);
         }
         return isDone ? `${stage}✅` : stage;
       }).join(', ');
@@ -973,20 +968,15 @@ function processOrderRekap(sendToTelegram = true) {
     }
   });
 
-  // Salin ke Clipboard
   navigator.clipboard.writeText(teksRekap).then(() => {
     if (!sendToTelegram) showToast("Rekap disalin ke WhatsApp!");
   });
 
-  // Kirim ke Telegram
   if (sendToTelegram) {
     const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U';
     const chatId = '-5026846679';
     const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(teksRekap)}&parse_mode=Markdown`;
-
-    fetch(url).then(res => {
-      if(res.ok) showToast("✓ Rekap terkirim & disalin!");
-    }).catch(err => console.error(err));
+    fetch(url).then(res => { if(res.ok) showToast("✓ Rekap terkirim & disalin!"); });
   }
 }
     
