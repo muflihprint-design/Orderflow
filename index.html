@@ -670,12 +670,30 @@ function openDetail(id) {
     }
 
    function openStatusModalFromDetail() {
-  // 1. Ambil data order yang sedang dipilih berdasarkan selectedOrderId
+  // 1. Ambil data order yang sedang dipilih
   const order = allOrders.find(o => o.id === selectedOrderId);
+  
   if (order) {
-    // Backend mengirim yyyy-MM-dd, ini langsung cocok dengan input type="date"
+    // Isi field tanggal
     document.getElementById('edit-status-deadline').value = order.statusDeadline || "";
     document.getElementById('edit-final-deadline').value = order.finalDeadline || "";
+
+    // --- LOGIKA PENANDA STATUS ---
+    // 2. Ambil semua tombol status di dalam modal
+    const statusButtons = document.querySelectorAll('#status-modal .status-btn');
+    
+    statusButtons.forEach(btn => {
+      // Hapus tanda aktif sebelumnya (reset state)
+      btn.classList.remove('bg-blue-600', 'text-white', 'border-blue-600', 'ring-2', 'ring-blue-300');
+      btn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
+
+      // Jika data atribut atau text tombol cocok dengan status order
+      if (btn.getAttribute('data-status') === order.status || btn.innerText.trim() === order.status) {
+        // Tambahkan class aktif (contoh menggunakan Tailwind)
+        btn.classList.remove('bg-white', 'text-gray-700', 'border-gray-300');
+        btn.classList.add('bg-blue-600', 'text-white', 'border-blue-600', 'ring-2', 'ring-blue-300');
+      }
+    });
   }
 
   // 3. Proses transisi modal
