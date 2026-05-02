@@ -899,11 +899,15 @@ function processOrderRekap(sendToTelegram = true) {
   const bulanIni = sekarang.getMonth();
   const tahunIni = sekarang.getFullYear();
   const namaBulanHeader = bulanNames[bulanIni].toUpperCase();
-
-  // --- LOGIKA TAMBAHAN: HITUNG DEADLINE 3 HARI LAGI ---
+  
+  // Batas 3 hari lagi (Urgent Report)
   const tigaHariLagi = new Date();
   tigaHariLagi.setDate(sekarang.getDate() + 3);
-  tigaHariLagi.setHours(23, 59, 59, 999); // Set ke akhir hari
+  tigaHariLagi.setHours(23, 59, 59, 999);
+
+  // Batas 4 hari lagi (Untuk penebalan font di list)
+  const empatHariLagi = new Date();
+  empatHariLagi.setDate(sekarang.getDate() + 4);
 
   let urgentCount = 0;
   let urgentQty = 0;
@@ -911,14 +915,12 @@ function processOrderRekap(sendToTelegram = true) {
   allOrders.forEach(order => {
     if (order.status !== 'Selesai' && order.finalDeadline) {
       const dDeadline = new Date(order.finalDeadline);
-      // Cek jika deadline adalah hari ini sampai 3 hari ke depan
       if (dDeadline >= sekarang && dDeadline <= tigaHariLagi) {
         urgentCount++;
         urgentQty += parseInt(order.quantity || 0);
       }
     }
   });
-  // ---------------------------------------------------
 
   const rekapOrders = allOrders.filter(order => {
     const tglSelesai = order.finalDeadline ? new Date(order.finalDeadline) : null;
@@ -953,13 +955,12 @@ function processOrderRekap(sendToTelegram = true) {
   });
 
   const stages = ['Desain', 'Cetak', 'Finishing', 'Packing'];
-
-  // --- BAGIAN ATAS LAPORAN BARU ---
+  
   let teksRekap = `🚨 *URGENT - DEADLINE 3 HARI KE DEPAN*\n`;
   teksRekap += `📦 Total Order: ${urgentCount} Order\n`;
   teksRekap += `🔢 Total Qty  : ${urgentQty.toLocaleString()}\n`;
   teksRekap += `--------------------------\n\n`;
-  
+
   teksRekap += `📝 *LIST ORDERAN ${namaBulanHeader}*\n`;
   teksRekap += `--------------------------\n`;
 
@@ -971,7 +972,20 @@ function processOrderRekap(sendToTelegram = true) {
     }
 
     let qtyText = order.quantity ? `x${order.quantity},` : ",";
-    let barisHeader = `${index + 1}. ${infoWaktu}${order.customer}: ${order.jobName} ${qtyText}`;
+    
+    // --- LOGIKA PENEBALAN FONT ---
+    let isUrgentList = false;
+    if (order.finalDeadline && !['Selesai', 'Kirim'].includes(order.status)) {
+      const dDeadline = new Date(order.finalDeadline);
+      if (dDeadline <= empatHariLagi) {
+        isUrgentList = true;
+      }
+    }
+
+    let contentHeader = `${infoWaktu}${order.customer}: ${order.jobName} ${qtyText}`;
+    // Jika urgent, bungkus dengan asteris (*) untuk Markdown Bold
+    let barisHeader = isUrgentList ? `${index + 1}. *${contentHeader}*` : `${index + 1}. ${contentHeader}`;
+    
     let infoTarget = order.finalDeadline ? ` Target Selesai tgl ${formatWithMonth(new Date(order.finalDeadline))}` : "";
 
     if (order.status === 'Selesai') {
