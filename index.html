@@ -879,6 +879,7 @@ function processOrderRekap(sendToTelegram = true) {
   const tahunIni = sekarang.getFullYear();
   const namaBulanHeader = bulanNames[bulanIni];
   
+  // 1. FILTER: Ambil semua orderan aktif DAN orderan selesai di bulan berjalan
   const rekapOrders = allOrders.filter(order => {
     const tglSelesai = order.finalDeadline ? new Date(order.finalDeadline) : null;
     if (order.status !== 'Selesai') return true;
@@ -893,15 +894,14 @@ function processOrderRekap(sendToTelegram = true) {
     return;
   }
 
-  // PENGURUTAN: Berdasarkan waktu masuk (Jam, Menit, Detik) dari yang pertama masuk
+  // 2. PENGURUTAN MUTLAK: Berdasarkan waktu masuk (Jam, Menit, Detik)
+  // Meskipun sudah 'Selesai', urutan tetap mengikuti tanggal pertama kali order masuk
   rekapOrders.sort((a, b) => {
-    // Mengonversi string "YYYY-MM-DD HH:mm:ss" menjadi objek waktu untuk perbandingan presisi
     const waktuA = a.entryDate ? new Date(a.entryDate).getTime() : 0;
     const waktuB = b.entryDate ? new Date(b.entryDate).getTime() : 0;
-    return waktuA - waktuB; // FIFO: Urutan berdasarkan waktu terkecil (paling awal)
+    return waktuA - waktuB; // Urutan Kronologis (FIFO)
   });
 
-  // Tahapan proses yang ditampilkan di laporan (Tanpa Konfirmasi & Kirim)
   const stages = ['Desain', 'Cetak', 'Finishing', 'Packing'];
 
   let teksRekap = `📝 *LIST ORDERAN ${namaBulanHeader}*\n`;
@@ -919,7 +919,7 @@ function processOrderRekap(sendToTelegram = true) {
       }
       teksRekap += `${baris}\n\n`; 
     } else {
-      // Penyesuaian keterangan status teks
+      // Keterangan status teks
       if (['Desain', 'Revisi'].includes(order.status)) {
         baris += ` _mau didesainkan_`;
       } else if (order.status === 'Konfirmasi') {
@@ -939,15 +939,15 @@ function processOrderRekap(sendToTelegram = true) {
         baris += `, estimasi selesai pesanan tggl ${tglFinal}`;
       }
 
-      // Visualisasi Tahapan (Hanya Desain, Cetak, Finishing, Packing)
+      // Visualisasi Tahapan (Centang otomatis berdasarkan status)
       const progressVisual = stages.map((stage) => {
         let isDone = false;
         if (stage === 'Desain') {
           isDone = !['Desain', 'Revisi'].includes(order.status);
         } else {
           let effectiveStatus = order.status;
-          if (order.status === 'Konfirmasi') effectiveStatus = 'Cetak'; 
-          if (order.status === 'Kirim') effectiveStatus = 'Selesai'; 
+          if (order.status === 'Konfirmasi') effectiveStatus = 'Cetak';
+          if (order.status === 'Kirim') effectiveStatus = 'Selesai';
 
           const currentIndex = stages.indexOf(effectiveStatus);
           const stageIndex = stages.indexOf(stage);
@@ -965,11 +965,12 @@ function processOrderRekap(sendToTelegram = true) {
     }
   });
 
-  // Logika pengiriman & salin
+  // Salin ke Clipboard
   navigator.clipboard.writeText(teksRekap).then(() => {
     if (!sendToTelegram) showToast("Rekap disalin ke WhatsApp!");
   });
 
+  // Kirim ke Telegram
   if (sendToTelegram) {
     const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U';
     const chatId = '-5026846679';
