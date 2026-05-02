@@ -893,7 +893,13 @@ function processOrderRekap(sendToTelegram = true) {
     return;
   }
 
-  rekapOrders.sort((a, b) => new Date(a.entryDate) - new Date(b.entryDate));
+  // PENGURUTAN: Berdasarkan waktu masuk (Jam, Menit, Detik) dari yang pertama masuk
+  rekapOrders.sort((a, b) => {
+    // Mengonversi string "YYYY-MM-DD HH:mm:ss" menjadi objek waktu untuk perbandingan presisi
+    const waktuA = a.entryDate ? new Date(a.entryDate).getTime() : 0;
+    const waktuB = b.entryDate ? new Date(b.entryDate).getTime() : 0;
+    return waktuA - waktuB; // FIFO: Urutan berdasarkan waktu terkecil (paling awal)
+  });
 
   // Tahapan proses yang ditampilkan di laporan (Tanpa Konfirmasi & Kirim)
   const stages = ['Desain', 'Cetak', 'Finishing', 'Packing'];
@@ -937,14 +943,11 @@ function processOrderRekap(sendToTelegram = true) {
       const progressVisual = stages.map((stage) => {
         let isDone = false;
         if (stage === 'Desain') {
-          // Desain dianggap selesai jika status bukan Desain/Revisi
           isDone = !['Desain', 'Revisi'].includes(order.status);
         } else {
-          // Jika status adalah Konfirmasi atau Kirim, kita tentukan posisinya secara manual 
-          // agar centang tetap akurat pada urutan stages yang tersisa
           let effectiveStatus = order.status;
-          if (order.status === 'Konfirmasi') effectiveStatus = 'Cetak'; // Konfirmasi berada sebelum Cetak
-          if (order.status === 'Kirim') effectiveStatus = 'Selesai'; // Kirim sudah melewati semua stage
+          if (order.status === 'Konfirmasi') effectiveStatus = 'Cetak'; 
+          if (order.status === 'Kirim') effectiveStatus = 'Selesai'; 
 
           const currentIndex = stages.indexOf(effectiveStatus);
           const stageIndex = stages.indexOf(stage);
