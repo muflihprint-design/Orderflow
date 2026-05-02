@@ -899,14 +899,11 @@ function processOrderRekap(sendToTelegram = true) {
     return new Date(m[0], parseInt(m[1]) - 1, m[2], parseInt(m[3] || 0), parseInt(m[4] || 0));
   };
 
-  /** 
-   * DISESUAIKAN: 
-   * Mengurutkan berdasarkan ID format 6 digit (ORD-000001)
-   */
+  // Urutkan berdasarkan ID (Nomor Urut ORD-000001, dst)
   rekapOrders.sort((a, b) => {
     const idA = (a.id || "").toUpperCase();
     const idB = (b.id || "").toUpperCase();
-    return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
+    return idA.localeCompare(idB, undefined, { numeric: true });
   });
 
   const stages = ['Desain', 'Cetak', 'Finishing', 'Packing'];
@@ -914,10 +911,6 @@ function processOrderRekap(sendToTelegram = true) {
   teksRekap += `--------------------------\n`;
 
   rekapOrders.forEach((order, index) => {
-    /** 
-     * DISESUAIKAN: 
-     * Format waktu hanya [Tgl/Bln] tanpa Jam sesuai permintaan
-     */
     let infoWaktu = "";
     if (order.entryDate) {
       const d = formatStandardDate(order.entryDate);
@@ -926,18 +919,32 @@ function processOrderRekap(sendToTelegram = true) {
       infoWaktu = `[${tglStr}/${blnStr}] `; 
     }
 
-    // Menggunakan index + 1 agar nomor urut di list WA tetap rapi
     let baris = `${index + 1}. ${infoWaktu}*${order.customer}*: ${order.jobName} ${order.quantity ? 'x' + order.quantity : ''}`;
 
+    // 1. Logika Estimasi Final (Untuk SEMUA Orderan)
+    let estimasiInfo = "";
+    if (order.finalDeadline) {
+      const dFinal = new Date(order.finalDeadline);
+      const tglF = String(dFinal.getDate()).padStart(2, '0');
+      const blnF = String(dFinal.getMonth() + 1).padStart(2, '0');
+      estimasiInfo = `\n   └─ 🏁 Est. Selesai: ${tglF}/${blnF}`;
+    }
+
+    // 2. Logika Estimasi Proses/Tahap (Hanya untuk order aktif, bukan 'Kirim' atau 'Selesai')
+    let estimasiTahap = "";
+    const statusAktif = !['Kirim', 'Selesai'].includes(order.status);
+    if (statusAktif && order.statusDeadline) {
+      const dStatus = new Date(order.statusDeadline);
+      const tglS = String(dStatus.getDate()).padStart(2, '0');
+      const blnS = String(dStatus.getMonth() + 1).padStart(2, '0');
+      estimasiTahap = ` (Est. Tahap: ${tglS}/${blnS})`;
+    }
+
     if (order.status === 'Selesai') {
-      if (order.finalDeadline) {
-        const tglFinal = new Date(order.finalDeadline).getDate();
-        baris += `, estimasi selesai pesanan tggl ${tglFinal} ✅`;
-      } else {
-        baris += ` ✅`;
-      }
-      teksRekap += `${baris}\n\n`; 
+      baris += ` ✅`;
+      teksRekap += `${baris}${estimasiInfo}\n\n`; 
     } else {
+      // Label status
       if (['Desain', 'Revisi'].includes(order.status)) {
         baris += ` _mau didesainkan_`;
       } else if (order.status === 'Konfirmasi') {
@@ -948,6 +955,10 @@ function processOrderRekap(sendToTelegram = true) {
         baris += ` _sedang diproses_`;
       }
 
+      // Gabungkan info estimasi tahap ke baris status
+      baris += estimasiTahap;
+
+      // Progress bar manual
       const progressVisual = stages.map((stage) => {
         let isDone = false;
         if (stage === 'Desain') {
@@ -963,14 +974,16 @@ function processOrderRekap(sendToTelegram = true) {
         return isDone ? `${stage}✅` : stage;
       }).join(', ');
 
-      teksRekap += `${baris}\n(${progressVisual})\n\n`;
+      teksRekap += `${baris}\n   (${progressVisual})${estimasiInfo}\n\n`;
     }
   });
 
+  // Copy ke Clipboard
   navigator.clipboard.writeText(teksRekap).then(() => {
     if (!sendToTelegram) showToast("Rekap disalin!");
   });
 
+  // Kirim ke Telegram
   if (sendToTelegram) {
     const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U';
     const chatId = '-5026846679';
