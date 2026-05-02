@@ -1109,25 +1109,22 @@ function processOrderRekap(sendToTelegram = true) {
 
   const bulanNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
   const sekarang = new Date();
-  sekarang.setHours(0, 0, 0, 0); // Mulai dari awal hari ini
+  sekarang.setHours(0, 0, 0, 0);
   
   const bulanIni = sekarang.getMonth();
   const tahunIni = sekarang.getFullYear();
   const namaBulanHeader = bulanNames[bulanIni].toUpperCase();
   
-  // LOGIKA BARU: Ambil s/d 2 hari ke depan (Hari ini + 2 hari = 3 hari total)
   const batasUrgent = new Date();
   batasUrgent.setDate(sekarang.getDate() + 2);
-  batasUrgent.setHours(23, 59, 59, 999); // Akhir hari lusa
+  batasUrgent.setHours(23, 59, 59, 999);
 
   let urgentCount = 0;
   let urgentQty = 0;
 
-  // Hitung statistik untuk header urgent
   allOrders.forEach(order => {
     if (order.status !== 'Selesai' && order.status !== 'Kirim' && order.finalDeadline) {
       const dDeadline = new Date(order.finalDeadline);
-      // Memeriksa jika deadline dalam rentang hari ini s/d lusa
       if (dDeadline >= sekarang && dDeadline <= batasUrgent) {
         urgentCount++;
         urgentQty += parseInt(order.quantity || 0);
@@ -1167,9 +1164,9 @@ function processOrderRekap(sendToTelegram = true) {
     return idA.localeCompare(idB, undefined, { numeric: true });
   });
 
-  const stages = ['Desain', 'Cetak', 'Finishing', 'Packing'];
+  // DAFTAR TAHAPAN (Ditambah Item di awal)
+  const stages = ['Item', 'Desain', 'Cetak', 'Finishing', 'Packing'];
   
-  // UPDATE TEXT HEADER: Menjadi S/D 2 HARI KE DEPAN
   let teksRekap = `🚨 *URGENT - HARI INI S/D 2 HARI KE DEPAN*\n`;
   teksRekap += `📦 Total Order: ${urgentCount} Order\n`;
   teksRekap += `🔢 Total Qty  : ${urgentQty.toLocaleString()}\n`;
@@ -1186,13 +1183,11 @@ function processOrderRekap(sendToTelegram = true) {
     }
 
     let qtyText = order.quantity ? `x${order.quantity},` : ",";
-    
     let isUrgentList = false;
     let urgentIcon = ""; 
     
     if (order.finalDeadline && !['Selesai', 'Kirim'].includes(order.status)) {
       const dDeadline = new Date(order.finalDeadline);
-      // Konsisten dengan logika header: hari ini s/d lusa
       if (dDeadline >= sekarang && dDeadline <= batasUrgent) {
         isUrgentList = true;
         urgentIcon = "💓 "; 
@@ -1201,7 +1196,6 @@ function processOrderRekap(sendToTelegram = true) {
 
     let contentHeader = `${infoWaktu}${urgentIcon}${order.customer}: ${order.jobName} ${qtyText}`;
     let barisHeader = isUrgentList ? `${index + 1}. *${contentHeader}*` : `${index + 1}. ${contentHeader}`;
-    
     let infoTarget = order.finalDeadline ? ` Target Selesai tgl ${formatWithMonth(new Date(order.finalDeadline))}` : "";
 
     if (order.status === 'Selesai') {
@@ -1218,15 +1212,30 @@ function processOrderRekap(sendToTelegram = true) {
       
       const progressVisual = stages.map((stage) => {
         let isDone = false;
-        if (stage === 'Desain') {
+
+        // LOGIKA PENGECEKAN TAHAPAN
+        if (stage === 'Item') {
+          // Cek kelengkapan bahan (Kolom L vs Kolom M)
+          const rawEquip = order.equipment || "";[cite: 1]
+          const checkedEquip = (order.checkedEquipment || "").toLowerCase();[cite: 1]
+          if (rawEquip.includes(':')) {
+            const itemsArray = rawEquip.split(':')[1].split(',').map(i => i.trim().toLowerCase());
+            isDone = itemsArray.every(item => checkedEquip.includes(item));[cite: 1]
+          } else {
+            isDone = false;
+          }
+        } 
+        else if (stage === 'Desain') {
           isDone = !['Desain', 'Revisi'].includes(order.status);
-        } else {
+        } 
+        else {
           let effStatus = order.status;
           if (order.status === 'Konfirmasi') effStatus = 'Cetak';
           const currentIndex = stages.indexOf(effStatus);
           const stageIndex = stages.indexOf(stage);
           isDone = currentIndex > stageIndex && currentIndex !== -1;
         }
+
         return isDone ? `${stage}✅` : stage;
       }).join(', ');
 
