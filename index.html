@@ -312,12 +312,24 @@
       </div>
     </div>
 
-    <!-- SECTION 4: CATATAN -->
-    <div>
-      <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Catatan Tambahan</label>
-      <textarea name="description" rows="3" placeholder="Detail bahan, finishing, dll..." 
-                class="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"></textarea>
-    </div>
+   <!-- SECTION 4: KELENGKAPAN & CATATAN -->
+<div class="space-y-4">
+  <div>
+    <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1 flex items-center gap-1">
+      <i data-lucide="wrench" class="w-3 h-3"></i> Kelengkapan Bahan (Equipment)
+    </label>
+    <textarea name="equipment" rows="2" placeholder="Daftar bahan yang dibutuhkan..." 
+              class="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"></textarea>
+  </div>
+
+  <div>
+    <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1 flex items-center gap-1">
+      <i data-lucide="message-square" class="w-3 h-3"></i> Catatan Tambahan
+    </label>
+    <textarea name="description" rows="3" placeholder="Detail bahan, finishing, dll..." 
+              class="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"></textarea>
+  </div>
+</div>
 
     <!-- TOMBOL SIMPAN -->
     <button type="submit" id="submit-btn" 
@@ -447,7 +459,7 @@
 </div>
   
   <script>
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzxZYdObsgbPgMVL00tEiid4zxItCMHR82APnqYuspLhyMtn2IWrOkieVS1GmOZF-hz3w/exec';
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzq29thf_cjSE1-7XBVBulLVoBzzuM-ILpCe7Hc8jeOHya49lkIYO8ghUHrBgLJHukVxQ/exec';
     
     let allOrders = [];
     let currentFilter = 'Aktif';
@@ -500,23 +512,25 @@ function selectTransaction(index) {
   
   if (items.length === 0) return;
 
-  // Logika Nama Pekerjaan & Qty (tetap sama)
-  let mainJobName = items[0].nama;
-  let mainQty = items[0].qty;
-  let additionalJobs = items.slice(1).map(it => `${it.nama} x ${it.qty}`).join(', ');
-  const finalJobName = additionalJobs ? `${mainJobName} (${additionalJobs})` : mainJobName;
+  // 1. Nama Pekerjaan: Hanya ambil nama item pertama saja sesuai permintaan
+  const firstItemName = items[0].nama;
+  const firstItemQty = items[0].qty;
 
-  // Isi Form
+  // 2. Kelengkapan Bahan: Gabungkan semua item dari JSON (Nama x Qty)
+  const allItemsText = items.map(it => `${it.nama} (x${it.qty})`).join(', ');
+
+  // Isi ke Form
   const form = document.getElementById('add-order-form');
   form.elements['customer'].value = data.customer;
-  form.elements['jobName'].value = finalJobName;
-  form.elements['quantity'].value = mainQty;
+  form.elements['jobName'].value = firstItemName;
+  form.elements['quantity'].value = firstItemQty;
   
-  // MASUKKAN ID KE CATATAN TAMBAH (Field: description)
+  // Isi Kelengkapan Bahan & Catatan
+  form.elements['equipment'].value = allItemsText;
   form.elements['description'].value = `ID Transaksi: ${data.id}`;
 
   closeImportModal();
-  showToast("✓ Data & ID Transaksi berhasil diimport!");
+  showToast("✓ Data & Kelengkapan berhasil diimport!");
 }
 
 function closeImportModal() {
@@ -646,67 +660,66 @@ function showLoadingState(targetId) {
 }
     
 async function handleFormSubmit(e) {
-  e.preventDefault();
+  e.preventDefault();[cite: 1]
   
-  const btn = document.getElementById('submit-btn');
-  const originalContent = btn.innerHTML;
-  btn.disabled = true;
-  btn.classList.add('opacity-70', 'cursor-not-allowed');
-  btn.innerHTML = '<i class="animate-spin mr-2" data-lucide="loader-2"></i> MENYIMPAN...';
-  if (window.lucide) lucide.createIcons();
+  const btn = document.getElementById('submit-btn');[cite: 1]
+  const originalContent = btn.innerHTML;[cite: 1]
+  btn.disabled = true;[cite: 1]
+  btn.classList.add('opacity-70', 'cursor-not-allowed');[cite: 1]
+  btn.innerHTML = '<i class="animate-spin mr-2" data-lucide="loader-2"></i> MENYIMPAN...';[cite: 1]
+  if (window.lucide) lucide.createIcons();[cite: 1]
 
-  const formData = new FormData(e.target);
+  const formData = new FormData(e.target);[cite: 1]
   
   /**
-   * CATATAN: 
-   * 'id' tidak lagi dibuat di sini karena server (Apps Script) 
-   * akan otomatis membuat ID berdasarkan nomor urut (ORD-001, dst).
+   * Mengambil data dari form termasuk field 'equipment'
+   * Data ini akan dikirim ke Apps Script untuk mengisi Kolom L ("Equipment")
    */
   const orderData = {
-    action: 'addNewOrder', 
-    customer: formData.get('customer'),
-    phone: formData.get('phone'),
-    jobName: formData.get('jobName'),
-    quantity: formData.get('quantity'),
-    priority: formData.get('priority'),
-    status: formData.get('status') || 'Desain',
-    description: formData.get('description'),
-    finalDeadline: formData.get('finalDeadline'),
-    statusDeadline: formData.get('statusDeadline')
-    // entryDate juga sudah ditangani otomatis oleh server agar formatnya standar
+    action: 'addNewOrder',[cite: 1]
+    customer: formData.get('customer'),[cite: 1]
+    phone: formData.get('phone'),[cite: 1]
+    jobName: formData.get('jobName'),[cite: 1]
+    quantity: formData.get('quantity'),[cite: 1]
+    priority: formData.get('priority'),[cite: 1]
+    status: formData.get('status') || 'Desain',[cite: 1]
+    equipment: formData.get('equipment'), // Menambahkan data Kelengkapan Bahan
+    description: formData.get('description'),[cite: 1]
+    finalDeadline: formData.get('finalDeadline'),[cite: 1]
+    statusDeadline: formData.get('statusDeadline')[cite: 1]
   };
 
   try {
-    const queryParams = new URLSearchParams(orderData).toString();
-    const response = await fetch(`${WEB_APP_URL}?${queryParams}`);
+    const queryParams = new URLSearchParams(orderData).toString();[cite: 1]
+    const response = await fetch(`${WEB_APP_URL}?${queryParams}`);[cite: 1]
     
-    if (!response.ok) throw new Error('Network response was not ok');
+    if (!response.ok) throw new Error('Network response was not ok');[cite: 1]
     
-    const result = await response.json();
+    const result = await response.json();[cite: 1]
 
     if (result.success) {
-      showToast("✓ Pesanan Tersimpan!");
+      showToast("✓ Pesanan Tersimpan!");[cite: 1]
       
-      e.target.reset();
+      e.target.reset();[cite: 1]
       
       // Memuat ulang data agar nomor urut ID terbaru muncul di list
-      await loadOrders(); 
+      await loadOrders();[cite: 1]
       
       // Jalankan rekap otomatis ke Telegram/Clipboard
-      processOrderRekap(); 
+      processOrderRekap();[cite: 1]
 
-      switchTab('antrian');
+      switchTab('antrian');[cite: 1]
     } else {
-      showToast("❌ Gagal: " + (result.error || "Gagal simpan"));
+      showToast("❌ Gagal: " + (result.error || "Gagal simpan"));[cite: 1]
     }
   } catch (err) {
-    console.error(err);
-    showToast("❌ Gagal terhubung ke server");
+    console.error(err);[cite: 1]
+    showToast("❌ Gagal terhubung ke server");[cite: 1]
   } finally {
-    btn.disabled = false;
-    btn.classList.remove('opacity-70', 'cursor-not-allowed');
-    btn.innerHTML = originalContent;
-    if (window.lucide) lucide.createIcons();
+    btn.disabled = false;[cite: 1]
+    btn.classList.remove('opacity-70', 'cursor-not-allowed');[cite: 1]
+    btn.innerHTML = originalContent;[cite: 1]
+    if (window.lucide) lucide.createIcons();[cite: 1]
   }
 }
     
