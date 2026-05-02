@@ -312,21 +312,23 @@
       </div>
     </div>
 
-   <!-- SECTION 4: KELENGKAPAN & CATATAN -->
+ <!-- SECTION 4: KELENGKAPAN & CATATAN -->
 <div class="space-y-4">
   <div>
     <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1 flex items-center gap-1">
-      <i data-lucide="wrench" class="w-3 h-3"></i> Kelengkapan Bahan (Equipment)
+      <i data-lucide="wrench" class="w-3 h-3"></i> Kelengkapan Bahan (Import Otomatis)
     </label>
-    <textarea name="equipment" rows="2" placeholder="Daftar bahan yang dibutuhkan..." 
-              class="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"></textarea>
+    <!-- Menambahkan 'readonly' dan 'bg-gray-100' agar tidak bisa diedit[cite: 1] -->
+    <textarea name="equipment" rows="2" readonly 
+              placeholder="Pilih dari Data Transaksi untuk mengisi..." 
+              class="w-full p-4 bg-gray-100 border border-gray-100 rounded-2xl shadow-sm outline-none cursor-not-allowed text-sm text-gray-600 font-mono"></textarea>
   </div>
 
   <div>
     <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1 flex items-center gap-1">
-      <i data-lucide="message-square" class="w-3 h-3"></i> Catatan Tambahan
+      <i data-lucide="message-square" class="w-3 h-3"></i> Catatan Tambahan (Manual)
     </label>
-    <textarea name="description" rows="3" placeholder="Detail bahan, finishing, dll..." 
+    <textarea name="description" rows="3" placeholder="Detail finishing atau instruksi manual..." 
               class="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"></textarea>
   </div>
 </div>
@@ -512,12 +514,12 @@ function selectTransaction(index) {
   
   if (items.length === 0) return;
 
-  // 1. Nama Pekerjaan: Hanya ambil nama item pertama saja sesuai permintaan
+  // 1. Nama Pekerjaan: Hanya item pertama saja
   const firstItemName = items[0].nama;
   const firstItemQty = items[0].qty;
 
-  // 2. Kelengkapan Bahan: Gabungkan semua item dari JSON (Nama x Qty)
-  const allItemsText = items.map(it => `${it.nama} (x${it.qty})`).join(', ');
+  // 2. Format Kelengkapan Bahan: TRX-ID: Item (xQty), ...
+  const allItemsText = `${data.id}: ` + items.map(it => `${it.nama} (x${it.qty})`).join(', ');
 
   // Isi ke Form
   const form = document.getElementById('add-order-form');
@@ -525,12 +527,14 @@ function selectTransaction(index) {
   form.elements['jobName'].value = firstItemName;
   form.elements['quantity'].value = firstItemQty;
   
-  // Isi Kelengkapan Bahan & Catatan
+  // Masukkan ke Kelengkapan Bahan
   form.elements['equipment'].value = allItemsText;
-  form.elements['description'].value = `ID Transaksi: ${data.id}`;
+  
+  // Kosongkan catatan tambahan (ID sudah pindah ke Kelengkapan)
+  form.elements['description'].value = "";
 
   closeImportModal();
-  showToast("✓ Data & Kelengkapan berhasil diimport!");
+  showToast("✓ Data berhasil diimport ke Kelengkapan!");
 }
 
 function closeImportModal() {
