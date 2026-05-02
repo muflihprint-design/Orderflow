@@ -896,24 +896,34 @@ function processOrderRekap(sendToTelegram = true) {
     return false;
   });
 
-  // FUNGSI BARU: Menulis ulang string tanggal agar standar (Anti-Gagal)
-  const formatStandardDate = (dateStr) => {
-    if (!dateStr) return new Date(0);
-    const m = String(dateStr).match(/\d+/g);
+  /**
+   * PERBAIKAN UTAMA:
+   * Menangani data yang bisa berupa String "2026-05-02 8:43" 
+   * atau Objek Date asli dari database.
+   */
+  const formatStandardDate = (dateVal) => {
+    if (!dateVal) return new Date(0);
+    
+    // Jika data sudah dalam bentuk objek Date, langsung kembalikan
+    if (dateVal instanceof Date) return dateVal;
+
+    // Jika berupa string, bedah menggunakan Regex
+    const m = String(dateVal).match(/\d+/g);
     if (!m || m.length < 3) return new Date(0);
 
-    // Memastikan Jam, Menit, Detik selalu ada dan dipadu dengan nol jika cuma 1 digit
+    // Ambil komponen (Tahun, Bulan, Tgl, Jam, Menit, Detik)
     const thn = m[0];
-    const bln = m[1].padStart(2, '0');
-    const tgl = m[2].padStart(2, '0');
-    const jam = (m[3] || "0").padStart(2, '0');
-    const mnt = (m[4] || "0").padStart(2, '0');
-    const dtk = (m[5] || "0").padStart(2, '0');
+    const bln = parseInt(m[1]) - 1; // Bulan JS mulai dari 0
+    const tgl = parseInt(m[2]);
+    const jam = parseInt(m[3] || 0);
+    const mnt = parseInt(m[4] || 0);
+    const dtk = parseInt(m[5] || 0);
 
-    // Menghasilkan format ISO: YYYY-MM-DDTHH:mm:ss
-    return new Date(`${thn}-${bln}-${tgl}T${jam}:${mnt}:${dtk}`);
+    // Rakit menggunakan constructor Date manual agar stabil di semua browser
+    return new Date(thn, bln, tgl, jam, mnt, dtk);
   };
 
+  // Urutkan berdasarkan waktu masuk (Kronologis)
   rekapOrders.sort((a, b) => formatStandardDate(a.entryDate).getTime() - formatStandardDate(b.entryDate).getTime());
 
   const stages = ['Desain', 'Cetak', 'Finishing', 'Packing'];
