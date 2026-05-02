@@ -536,7 +536,6 @@ function showLoadingState(targetId) {
 async function handleFormSubmit(e) {
   e.preventDefault();
   
-  // 1. Kunci tombol dan beri loading
   const btn = document.getElementById('submit-btn');
   const originalContent = btn.innerHTML;
   btn.disabled = true;
@@ -546,7 +545,15 @@ async function handleFormSubmit(e) {
 
   const formData = new FormData(e.target);
   
-  // 2. Siapkan data pesanan
+  // Ambil waktu sekarang untuk entryDate agar sinkron dengan database
+  const sekarang = new Date();
+  const formattedDate = sekarang.getFullYear() + "-" + 
+                        String(sekarang.getMonth() + 1).padStart(2, '0') + "-" + 
+                        String(sekarang.getDate()).padStart(2, '0') + " " + 
+                        String(sekarang.getHours()).padStart(2, '0') + ":" + 
+                        String(sekarang.getMinutes()).padStart(2, '0') + ":" + 
+                        String(sekarang.getSeconds()).padStart(2, '0');
+
   const orderData = {
     action: 'addNewOrder', 
     id: 'ORD-' + Date.now().toString().slice(-6),
@@ -558,11 +565,11 @@ async function handleFormSubmit(e) {
     status: formData.get('status') || 'Desain',
     description: formData.get('description'),
     finalDeadline: formData.get('finalDeadline'),
-    statusDeadline: formData.get('statusDeadline') 
+    statusDeadline: formData.get('statusDeadline'),
+    entryDate: formattedDate // Tambahkan entryDate agar pengurutan langsung bekerja
   };
 
   try {
-    // 3. Kirim via Fetch API ke WEB_APP_URL
     const queryParams = new URLSearchParams(orderData).toString();
     const response = await fetch(`${WEB_APP_URL}?${queryParams}`);
     
@@ -573,12 +580,14 @@ async function handleFormSubmit(e) {
     if (result.success) {
       showToast("✓ Pesanan Tersimpan!");
       
-      // 4. KIRIM REKAP KE TELEGRAM (Otomatis)
-      // Memanggil fungsi gabungan dengan default parameter true (Kirim + Salin)
+      e.target.reset();
+      
+      // PENTING: Tunggu proses loadOrders() selesai agar variabel 'allOrders' terisi data terbaru
+      await loadOrders(); 
+      
+      // Baru kemudian panggil rekap setelah data di memori sudah yang paling baru
       processOrderRekap(); 
 
-      e.target.reset();
-      loadOrders(); 
       switchTab('antrian');
     } else {
       showToast("❌ Gagal: " + (result.error || "Gagal simpan"));
@@ -587,7 +596,6 @@ async function handleFormSubmit(e) {
     console.error(err);
     showToast("❌ Gagal terhubung ke server");
   } finally {
-    // 5. Buka kunci tombol kembali
     btn.disabled = false;
     btn.classList.remove('opacity-70', 'cursor-not-allowed');
     btn.innerHTML = originalContent;
