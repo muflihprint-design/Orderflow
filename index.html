@@ -901,22 +901,30 @@ function processOrderRekap(sendToTelegram = true) {
     return;
   }
 
-  // HELPER: Memastikan Jam dan Menit terbaca secara akurat (Robust Parsing)
+  // HELPER PALING AMAN: Mengambil angka saja dari string "2026-05-02 7:58:15"
   const parseDate = (dateStr) => {
     if (!dateStr) return new Date(0);
     
-    // Pecah string "2026-05-02 7:58:15" berdasarkan pemisah -, spasi, dan :
-    const p = dateStr.split(/[- :]/);
+    // Ambil semua angka yang ada di dalam string (Tahun, Bulan, Tgl, Jam, Menit, Detik)
+    const m = dateStr.match(/\d+/g);
+    if (!m || m.length < 3) return new Date(0);
+
+    // m[0]=Tahun, m[1]=Bulan, m[2]=Tgl, m[3]=Jam, m[4]=Menit, m[5]=Detik
+    // Jika Jam/Menit/Detik tidak ada, set ke 0
+    const d = new Date(
+      parseInt(m[0]), 
+      parseInt(m[1]) - 1, 
+      parseInt(m[2]), 
+      parseInt(m[3] || 0), 
+      parseInt(m[4] || 0), 
+      parseInt(m[5] || 0)
+    );
     
-    // p[0]=tahun, p[1]=bulan, p[2]=tgl, p[3]=jam, p[4]=menit, p[5]=detik
-    // Bulan di JS dimulai dari 0 (Januari = 0), maka p[1] - 1
-    const d = new Date(p[0], p[1] - 1, p[2], p[3] || 0, p[4] || 0, p[5] || 0);
-    
-    return isNaN(d.getTime()) ? new Date(0) : d;
+    return d;
   };
 
-  // PENGURUTAN: Kronologis berdasarkan Jam & Menit masuk (FIFO)
-  rekapOrders.sort((a, b) => parseDate(a.entryDate) - parseDate(b.entryDate));
+  // PENGURUTAN: Tetap berdasarkan waktu masuk (FIFO)
+  rekapOrders.sort((a, b) => parseDate(a.entryDate).getTime() - parseDate(b.entryDate).getTime());
 
   const stages = ['Desain', 'Cetak', 'Finishing', 'Packing'];
 
@@ -945,7 +953,6 @@ function processOrderRekap(sendToTelegram = true) {
       }
       teksRekap += `${baris}\n\n`; 
     } else {
-      // Label status pengerjaan
       if (['Desain', 'Revisi'].includes(order.status)) {
         baris += ` _mau didesainkan_`;
       } else if (order.status === 'Konfirmasi') {
@@ -984,12 +991,10 @@ function processOrderRekap(sendToTelegram = true) {
     }
   });
 
-  // Salin ke Clipboard
   navigator.clipboard.writeText(teksRekap).then(() => {
     if (!sendToTelegram) showToast("Rekap disalin ke WhatsApp!");
   });
 
-  // Kirim ke Telegram
   if (sendToTelegram) {
     const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U';
     const chatId = '-5026846679';
