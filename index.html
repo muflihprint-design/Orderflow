@@ -922,22 +922,21 @@ function processOrderRekap(sendToTelegram = true) {
     let infoWaktu = "";
     if (order.entryDate) {
       const d = formatStandardDate(order.entryDate);
-      infoWaktu = `[${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}] `; 
+      infoWaktu = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} `; 
     }
 
-    let barisHeader = `${index + 1}. ${infoWaktu}*${order.customer}*: ${order.jobName} ${order.quantity ? 'x' + order.quantity : ''}`;
-    let infoTarget = order.finalDeadline ? `, Target Selesai tgl ${formatWithMonth(new Date(order.finalDeadline))}` : "";
+    // PERBAIKAN: Penambahan koma setelah quantity
+    let qtyText = order.quantity ? `x${order.quantity},` : ",";
+    let barisHeader = `${index + 1}. ${infoWaktu}${order.customer}: ${order.jobName} ${qtyText}`;
+    let infoTarget = order.finalDeadline ? ` Target Selesai tgl ${formatWithMonth(new Date(order.finalDeadline))}` : "";
 
     if (order.status === 'Selesai') {
-      // FORMAT SELESAI: Nama: Pekerjaan, Target Selesai tgl XX ✅
       teksRekap += `${barisHeader}${infoTarget} ✅\n\n`; 
     } 
     else if (order.status === 'Kirim') {
-      // FORMAT KIRIM: Nama: Pekerjaan, _siap dikirim/ambil_, Target Selesai tgl XX ✅
-      teksRekap += `${barisHeader}, _siap dikirim/ambil_${infoTarget} ✅\n\n`;
+      teksRekap += `${barisHeader} _siap dikirim/ambil_,${infoTarget} ✅\n\n`;
     } 
     else {
-      // FORMAT PROSES LAINNYA
       let estimasiTahap = "";
       if (order.statusDeadline) {
         estimasiTahap = ` _Estimasi Selesai ${order.status} tgl ${formatWithMonth(new Date(order.statusDeadline))}_`;
@@ -957,7 +956,7 @@ function processOrderRekap(sendToTelegram = true) {
         return isDone ? `${stage}✅` : stage;
       }).join(', ');
 
-      teksRekap += `${barisHeader}${estimasiTahap}\n   (${progressVisual})${infoTarget}\n\n`;
+      teksRekap += `${barisHeader}${estimasiTahap}\n   (${progressVisual}),${infoTarget}\n\n`;
     }
   });
 
