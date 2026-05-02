@@ -216,6 +216,13 @@
     <p class="text-gray-500 text-xs mt-1">Lengkapi detail pesanan cetak pelanggan.</p>
   </div>
 
+  <div class="mb-4">
+  <button onclick="openImportModal()" class="w-full flex items-center justify-center gap-2 p-4 bg-emerald-50 text-emerald-700 border-2 border-dashed border-emerald-200 rounded-3xl font-bold hover:bg-emerald-100 transition-all">
+    <i data-lucide="database" class="w-5 h-5"></i>
+    AMBIL DARI DATA TRANSAKSI
+  </button>
+</div>
+
   <form id="add-order-form" onsubmit="handleFormSubmit(event)" class="space-y-6">
     
     <!-- SECTION 1: INFORMASI PELANGGAN -->
@@ -377,6 +384,27 @@
     </div>
   </div>
 
+  <!-- Modal Pilih Transaksi dari Spreadsheet -->
+<div id="import-modal" class="fixed inset-0 z-[80] hidden bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+  <div class="bg-white w-full max-w-lg rounded-t-[2rem] sm:rounded-[2rem] max-h-[80vh] overflow-hidden flex flex-col transform transition-all duration-300">
+    <div class="p-6 border-b border-gray-100">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-black text-gray-900 italic">Pilih Transaksi</h3>
+        <button onclick="closeImportModal()" class="p-2 bg-gray-100 rounded-full text-gray-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="relative">
+        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+        <input type="text" id="search-import" oninput="filterImportList()" placeholder="Cari pelanggan atau item..." 
+               class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl outline-none text-sm focus:ring-2 focus:ring-blue-500">
+      </div>
+    </div>
+    <div id="import-list-container" class="p-4 overflow-y-auto flex-1 space-y-2">
+      <!-- Daftar transaksi akan muncul di sini -->
+      <div class="py-10 text-center text-gray-400">Memuat data...</div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Update Status (GABUNGAN BARU) -->
 <div id="status-modal" class="fixed inset-0 bg-black/60 z-[70] hidden flex items-end modal-overlay">
   <div class="bg-white w-full rounded-t-[2.5rem] p-6 modal-content transform translate-y-full transition-transform duration-300">
@@ -426,6 +454,116 @@
     let selectedOrderId = null;
     
     lucide.createIcons();
+
+let rawSheetData = [];
+
+// Fungsi untuk membuka modal dan mengambil data
+async function openImportModal() {
+  const modal = document.getElementById('import-modal');
+  modal.classList.remove('hidden');
+  const container = document.getElementById('import-list-container');
+  container.innerHTML = '<div class="py-10 text-center text-gray-400">Sedang menyinkronkan data...</div>';
+
+  const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvAQXltAVp8lnrXXVVPJr1hYEi8cAJrqz182qT23eaiI8t-MoBrEtE7bAAJqKEyKKTig4hpA9DNuQB/pub?gid=2057149863&single=true&output=csv";
+
+  try {
+    const response = await fetch(sheetUrl);
+    const csvText = await response.text();
+    const rows = csvText.split('\n').filter(row => row.trim() !== "");
+    
+    // Lewati header, ambil data
+    rawSheetData = rows.slice(1).map(row => {
+      const cols = parseCSVRow(row);
+      const items = JSON.parse(cols[10] || "[]");
+      return {
+        customer: cols[8],
+        items: items,
+        rawItems: cols[10]
+      };
+    }).reverse(); // Urutkan dari yang terbaru
+
+    renderImportList(rawSheetData);
+    lucide.createIcons();
+  } catch (err) {
+    container.innerHTML = '<div class="py-10 text-center text-red-500">Gagal mengambil data.</div>';
+  }
+}
+
+// Fungsi untuk menampilkan daftar di modal
+function renderImportList(data) {
+  const container = document.getElementById('import-list-container');
+  if (data.length === 0) {
+    container.innerHTML = '<div class="py-10 text-center text-gray-400">Tidak ada data ditemukan.</div>';
+    return;
+  }
+
+  container.innerHTML = data.map((entry, index) => {
+    const firstItem = entry.items[0] || { nama: 'Tidak ada item', qty: 0 };
+    return `
+      <div onclick="selectTransaction(${rawSheetData.indexOf(entry)})" class="p-4 bg-gray-50 border border-gray-100 rounded-2xl active:scale-[0.98] transition-all cursor-pointer hover:border-blue-300">
+        <div class="flex justify-between items-start">
+          <div class="flex-1">
+            <p class="text-[10px] font-bold text-blue-600 uppercase mb-1">${entry.customer}</p>
+            <h4 class="font-bold text-gray-800 text-sm">${firstItem.nama}</h4>
+          </div>
+          <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-lg text-[10px] font-black">QTY: ${firstItem.qty}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Fitur Pencarian
+function filterImportList() {
+  const query = document.getElementById('search-import').value.toLowerCase();
+  const filtered = rawSheetData.filter(d => {
+    const firstItemName = (d.items[0]?.nama || "").toLowerCase();
+    return d.customer.toLowerCase().includes(query) || firstItemName.includes(query);
+  });
+  renderImportList(filtered);
+}
+
+// Fungsi memilih transaksi dan mengisi form
+function selectTransaction(index) {
+  const data = rawSheetData[index];
+  const items = data.items;
+  
+  if (items.length === 0) return;
+
+  let mainJobName = items[0].nama;
+  let mainQty = items[0].qty;
+  let additionalJobs = items.slice(1).map(it => `${it.nama} x ${it.qty}`).join(', ');
+  
+  const finalJobName = additionalJobs ? `${mainJobName} (${additionalJobs})` : mainJobName;
+
+  const form = document.getElementById('add-order-form');
+  form.elements['customer'].value = data.customer;
+  form.elements['jobName'].value = finalJobName;
+  form.elements['quantity'].value = mainQty;
+
+  closeImportModal();
+  showToast("✓ Data terpilih!");
+}
+
+function closeImportModal() {
+  document.getElementById('import-modal').classList.add('hidden');
+  document.getElementById('search-import').value = "";
+}
+
+// Helper CSV Parser
+function parseCSVRow(row) {
+  const result = [];
+  let cur = "", inQuotes = false;
+  for (let i = 0; i < row.length; i++) {
+    if (row[i] === '"' && row[i+1] === '"') { cur += '"'; i++; }
+    else if (row[i] === '"') inQuotes = !inQuotes;
+    else if (row[i] === ',' && !inQuotes) { result.push(cur); cur = ""; }
+    else cur += row[i];
+  }
+  result.push(cur);
+  return result;
+}
+    
 
     // FUNGSI DEADLINE DARI USER
     function getDeadlineLabel(dateStr) {
