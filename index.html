@@ -893,7 +893,7 @@ function processOrderRekap(sendToTelegram = true) {
     return;
   }
 
-  // PENGURUTAN: Berdasarkan waktu masuk (Jam & Menit) dari yang paling lama
+  // PENGURUTAN: Berdasarkan waktu masuk (Jam, Menit, Detik)
   rekapOrders.sort((a, b) => {
     const waktuA = a.entryDate ? new Date(a.entryDate.replace(/-/g, "/")).getTime() : 0;
     const waktuB = b.entryDate ? new Date(b.entryDate.replace(/-/g, "/")).getTime() : 0;
@@ -906,14 +906,18 @@ function processOrderRekap(sendToTelegram = true) {
   teksRekap += `--------------------------\n`;
 
   rekapOrders.forEach((order, index) => {
-    // FORMAT BARU: [Tgl] Nama: Pekerjaan
-    let tglMasuk = "";
+    // FORMAT BARU: [Tgl - Jam] Nama: Pekerjaan
+    let infoWaktu = "";
     if (order.entryDate) {
       const d = new Date(order.entryDate.replace(/-/g, "/"));
-      tglMasuk = `[${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}] `;
+      const tgl = String(d.getDate()).padStart(2, '0');
+      const bln = String(d.getMonth() + 1).padStart(2, '0');
+      const jam = String(d.getHours()).padStart(2, '0');
+      const mnt = String(d.getMinutes()).padStart(2, '0');
+      infoWaktu = `[${tgl}/${bln} ${jam}:${mnt}] `;
     }
 
-    let baris = `${index + 1}. ${tglMasuk}*${order.customer}*: ${order.jobName} ${order.quantity ? 'x' + order.quantity : ''}`;
+    let baris = `${index + 1}. ${infoWaktu}*${order.customer}*: ${order.jobName} ${order.quantity ? 'x' + order.quantity : ''}`;
 
     if (order.status === 'Selesai') {
       if (order.finalDeadline) {
@@ -924,6 +928,7 @@ function processOrderRekap(sendToTelegram = true) {
       }
       teksRekap += `${baris}\n\n`; 
     } else {
+      // Keterangan status teks
       if (['Desain', 'Revisi'].includes(order.status)) {
         baris += ` _mau didesainkan_`;
       } else if (order.status === 'Konfirmasi') {
@@ -968,10 +973,12 @@ function processOrderRekap(sendToTelegram = true) {
     }
   });
 
+  // Salin ke Clipboard
   navigator.clipboard.writeText(teksRekap).then(() => {
     if (!sendToTelegram) showToast("Rekap disalin ke WhatsApp!");
   });
 
+  // Kirim ke Telegram
   if (sendToTelegram) {
     const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U';
     const chatId = '-5026846679';
