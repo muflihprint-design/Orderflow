@@ -901,33 +901,33 @@ function processOrderRekap(sendToTelegram = true) {
     return;
   }
 
-  // HELPER PALING AMAN: Mengambil angka saja dari string "2026-05-02 7:58:15"
+  /**
+   * FUNGSI PARSING STABIL
+   * Menangani format "2026-05-02 8:43:27" 
+   * (Meskipun jam tidak pakai angka 0 di depan)
+   */
   const parseDate = (dateStr) => {
     if (!dateStr) return new Date(0);
     
-    // Ambil semua angka yang ada di dalam string (Tahun, Bulan, Tgl, Jam, Menit, Detik)
-    const m = dateStr.match(/\d+/g);
+    // Cari semua deretan angka (Tahun, Bulan, Tgl, Jam, Menit, Detik)
+    const m = String(dateStr).match(/\d+/g);
     if (!m || m.length < 3) return new Date(0);
 
-    // m[0]=Tahun, m[1]=Bulan, m[2]=Tgl, m[3]=Jam, m[4]=Menit, m[5]=Detik
-    // Jika Jam/Menit/Detik tidak ada, set ke 0
-    const d = new Date(
-      parseInt(m[0]), 
-      parseInt(m[1]) - 1, 
-      parseInt(m[2]), 
-      parseInt(m[3] || 0), 
-      parseInt(m[4] || 0), 
-      parseInt(m[5] || 0)
+    // Rakit manual: new Date(thn, bln-1, tgl, jam, mnt, dtk)
+    return new Date(
+      parseInt(m[0]),      // Tahun
+      parseInt(m[1]) - 1,  // Bulan (JS mulai dari 0)
+      parseInt(m[2]),      // Tanggal
+      parseInt(m[3] || 0), // Jam (akan membaca '8' menjadi 8)
+      parseInt(m[4] || 0), // Menit
+      parseInt(m[5] || 0)  // Detik
     );
-    
-    return d;
   };
 
-  // PENGURUTAN: Tetap berdasarkan waktu masuk (FIFO)
+  // PENGURUTAN: Berdasarkan waktu masuk dari yang paling awal (Kronologis)
   rekapOrders.sort((a, b) => parseDate(a.entryDate).getTime() - parseDate(b.entryDate).getTime());
 
   const stages = ['Desain', 'Cetak', 'Finishing', 'Packing'];
-
   let teksRekap = `📝 *LIST ORDERAN ${namaBulanHeader}*\n`;
   teksRekap += `--------------------------\n`;
 
@@ -953,6 +953,7 @@ function processOrderRekap(sendToTelegram = true) {
       }
       teksRekap += `${baris}\n\n`; 
     } else {
+      // Label status pengerjaan
       if (['Desain', 'Revisi'].includes(order.status)) {
         baris += ` _mau didesainkan_`;
       } else if (order.status === 'Konfirmasi') {
@@ -992,14 +993,14 @@ function processOrderRekap(sendToTelegram = true) {
   });
 
   navigator.clipboard.writeText(teksRekap).then(() => {
-    if (!sendToTelegram) showToast("Rekap disalin ke WhatsApp!");
+    if (!sendToTelegram) showToast("Rekap disalin!");
   });
 
   if (sendToTelegram) {
     const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U';
     const chatId = '-5026846679';
     const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(teksRekap)}&parse_mode=Markdown`;
-    fetch(url).then(res => { if(res.ok) showToast("✓ Rekap terkirim & disalin!"); });
+    fetch(url).then(res => { if(res.ok) showToast("✓ Rekap terkirim!"); });
   }
 }
     
