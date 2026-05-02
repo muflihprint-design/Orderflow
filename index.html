@@ -879,7 +879,6 @@ function processOrderRekap(sendToTelegram = true) {
   const tahunIni = sekarang.getFullYear();
   const namaBulanHeader = bulanNames[bulanIni];
   
-  // 1. FILTER: Ambil semua orderan aktif DAN orderan selesai di bulan berjalan
   const rekapOrders = allOrders.filter(order => {
     const tglSelesai = order.finalDeadline ? new Date(order.finalDeadline) : null;
     if (order.status !== 'Selesai') return true;
@@ -894,12 +893,14 @@ function processOrderRekap(sendToTelegram = true) {
     return;
   }
 
-  // 2. PENGURUTAN MUTLAK: Berdasarkan waktu masuk (Jam, Menit, Detik)
-  // Meskipun sudah 'Selesai', urutan tetap mengikuti tanggal pertama kali order masuk
+  // --- PERBAIKAN LOGIKA URUTAN ---
   rekapOrders.sort((a, b) => {
-    const waktuA = a.entryDate ? new Date(a.entryDate).getTime() : 0;
-    const waktuB = b.entryDate ? new Date(b.entryDate).getTime() : 0;
-    return waktuA - waktuB; // Urutan Kronologis (FIFO)
+    // Pastikan format "2026-05-02 7:58:15" diproses dengan benar
+    // Menggunakan getTime() untuk membandingkan milidetik murni
+    const waktuA = a.entryDate ? new Date(a.entryDate.replace(/-/g, "/")).getTime() : 0;
+    const waktuB = b.entryDate ? new Date(b.entryDate.replace(/-/g, "/")).getTime() : 0;
+    
+    return waktuA - waktuB; // Dari yang paling lama (pagi) ke yang terbaru (sore)
   });
 
   const stages = ['Desain', 'Cetak', 'Finishing', 'Packing'];
@@ -919,7 +920,6 @@ function processOrderRekap(sendToTelegram = true) {
       }
       teksRekap += `${baris}\n\n`; 
     } else {
-      // Keterangan status teks
       if (['Desain', 'Revisi'].includes(order.status)) {
         baris += ` _mau didesainkan_`;
       } else if (order.status === 'Konfirmasi') {
@@ -939,7 +939,6 @@ function processOrderRekap(sendToTelegram = true) {
         baris += `, estimasi selesai pesanan tggl ${tglFinal}`;
       }
 
-      // Visualisasi Tahapan (Centang otomatis berdasarkan status)
       const progressVisual = stages.map((stage) => {
         let isDone = false;
         if (stage === 'Desain') {
@@ -965,12 +964,10 @@ function processOrderRekap(sendToTelegram = true) {
     }
   });
 
-  // Salin ke Clipboard
   navigator.clipboard.writeText(teksRekap).then(() => {
     if (!sendToTelegram) showToast("Rekap disalin ke WhatsApp!");
   });
 
-  // Kirim ke Telegram
   if (sendToTelegram) {
     const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U';
     const chatId = '-5026846679';
