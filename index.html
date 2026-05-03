@@ -544,25 +544,30 @@ async function selectTransaction(index) {
 
   // 3. Logika Percabangan: Update Data atau Input Baru
   if (isUpdateMode) {
-    // --- MODE UPDATE (Dijalankan jika tombol dipicu dari Detail Pesanan) ---
-    showToast("Sedang menghubungkan transaksi...");
+    // --- MODE UPDATE (GITHUB FRIENDLY) ---
+    showToast("Menghubungkan data transaksi...");
     
-    google.script.run
-      .withSuccessHandler((response) => {
-        if (response.success) {
-          showToast("✓ Transaksi berhasil dihubungkan!");
-          closeImportModal();
-          closeDetail(); // Tutup modal detail agar data terbaru bisa dimuat ulang[cite: 1]
-          loadOrders();  // Refresh daftar antrian[cite: 1]
-        } else {
-          showToast("❌ Gagal: " + response.error);
-        }
-      })
-      .withFailureHandler((err) => {
-        showToast("❌ Kesalahan Server: Gagal update data");
-        console.error(err);
-      })
-      .updateTransactionData(selectedOrderId, allItemsText); // Kirim ke Kode.gs[cite: 1]
+    try {
+      // Mengirim data ke Apps Script via Fetch API[cite: 1]
+      // Pastikan WEB_APP_URL adalah URL /exec dari deployment Anda
+      const response = await fetch(`${WEB_APP_URL}?action=updateTransactionData&orderId=${encodeURIComponent(selectedOrderId)}&equipmentText=${encodeURIComponent(allItemsText)}`);
+      
+      if (!response.ok) throw new Error("Gagal terhubung ke server.");
+      
+      const res = await response.json();
+
+      if (res.success) {
+        showToast("✓ Transaksi berhasil dihubungkan!");
+        closeImportModal();
+        closeDetail(); // Tutup modal detail[cite: 1]
+        loadOrders();  // Refresh daftar antrian secara otomatis[cite: 1]
+      } else {
+        showToast("❌ Gagal: " + res.error);
+      }
+    } catch (err) {
+      console.error("Fetch Error:", err);
+      showToast("❌ Kesalahan: Gagal memperbarui data via GitHub");
+    }
 
   } else {
     // --- MODE INPUT BARU (Isi Formulir Tambah Pesanan) ---[cite: 1]
