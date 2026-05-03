@@ -644,38 +644,30 @@ function showLoadingState(targetId) {
       }
     }
 
-   async function loadOrders() {
-  // Tampilkan animasi loading di kedua daftar saat mulai memuat
+function loadOrders() {
+  // 1. Tampilkan animasi loading di UI
   showLoadingState('order-list');
   showLoadingState('completed-list');
 
-  if (typeof google !== 'undefined' && google.script && google.script.run) {
-    // Jalankan jika berada di lingkungan Google Apps Script
-    google.script.run
-      .withSuccessHandler((data) => {
-        allOrders = data || [];
-        applyFilters();
-      })
-      .withFailureHandler((err) => {
-        showToast("Gagal memuat data dari server.");
-        console.error(err);
-      })
-      .getOrdersFromSheet();
-  } else {
-    // Jalankan Fetch API jika menggunakan server web biasa
-    try {
-      const response = await fetch(`${WEB_APP_URL}?action=getOrders`);
-      const data = await response.json();
+  // 2. Jalankan pembaruan data transaksi dari CSV secara background
+  preloadSheetData();
+
+  // 3. Panggil fungsi server-side Apps Script
+  google.script.run
+    .withSuccessHandler((data) => {
       allOrders = data || [];
-      applyFilters();
-    } catch (err) {
-      showToast("Gagal terhubung ke database.");
-      // Jika gagal, kosongkan daftar agar tidak terus-menerus loading
+      applyFilters(); // Render ulang daftar pesanan
+      showToast("🔄 Data Berhasil Diperbarui");
+    })
+    .withFailureHandler((err) => {
+      showToast("❌ Gagal memuat data dari server.");
+      console.error("Apps Script Error:", err);
+      
+      // Tampilkan pesan error di container agar tidak loading selamanya[cite: 1]
       document.getElementById('order-list').innerHTML = 
         `<div class="py-12 text-center text-gray-400 text-sm">Gagal memuat data.</div>`;
-      document.getElementById('completed-list').innerHTML = "";
-    }
-  }
+    })
+    .getOrdersFromSheet(); // Pastikan fungsi ini ada di Kode.gs Anda[cite: 1]
 }
     
 async function handleFormSubmit(e) {
