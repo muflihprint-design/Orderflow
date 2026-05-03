@@ -402,10 +402,18 @@
           <div id="det-desc" class="bg-gray-50 p-4 rounded-2xl text-sm text-gray-600 italic border border-gray-100"></div>
         </div>
       </div>
-      <div class="p-6 bg-white border-t border-gray-100 grid grid-cols-2 gap-3">
-        <button onclick="openStatusModalFromDetail()" class="py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-transform">Update Status</button>
-        <button onclick="closeDetail()" class="py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold">Tutup</button>
-      </div>
+      
+    <div class="p-6 bg-white border-t border-gray-100 space-y-3">
+  <!-- Tombol BARU untuk Hubungkan Transaksi -->
+  <button onclick="openImportModal(true)" class="w-full py-3 bg-emerald-50 text-emerald-700 rounded-2xl font-bold border border-emerald-100 flex justify-center items-center gap-2 active:scale-95 transition-all">
+    <i data-lucide="link" class="w-4 h-4"></i> Hubungkan Data Transaksi
+  </button>
+  
+  <div class="grid grid-cols-2 gap-3">
+    <button onclick="openStatusModalFromDetail()" class="py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-transform">Update Status</button>
+    <button onclick="closeDetail()" class="py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold">Tutup</button>
+  </div>
+</div>
     </div>
   </div>
 
@@ -472,7 +480,7 @@
 </div>
   
   <script>
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyXg2QxC6mVvm0_oQ8tpJqepL_syI-OkW8gz05g1LKpPiCqePrpgTZojz9FwJ-GK19HHQ/exec';
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwR6fNX7Zzi0JEOWd2ttb0llnZ6rUwUArCpetIcfE18eemVntNL778NN_TUcrbTDE9ndQ/exec';
     
     let allOrders = [];
     let currentFilter = 'Aktif';
@@ -519,38 +527,60 @@ function filterImportList() {
 }
 
 // Fungsi memilih transaksi dan mengisi form
-function selectTransaction(index) {
+async function selectTransaction(index) {
   const data = rawSheetData[index];
   const items = data.items;
   
   if (items.length === 0) return;
 
-  // 1. Nama Pekerjaan: Tetap mengambil item pertama (sesuai logika asli)
+  // 1. Ambil data dasar dari transaksi
   const firstItemName = items[0].nama;
   const firstItemQty = items[0].qty;
 
   // 2. Format Kelengkapan Bahan: Filter kategori yang BUKAN "TTH"
   const filteredItems = items.filter(it => it.kategori !== "TTH");
-  
   const allItemsText = `${data.id}: ` + 
     filteredItems.map(it => `${it.nama} (x${it.qty})`).join(', ');
 
-  // Isi ke Form
-  const form = document.getElementById('add-order-form');
-  form.elements['customer'].value = data.customer;
-  form.elements['jobName'].value = firstItemName;
-  form.elements['quantity'].value = firstItemQty;
-  
-  // Masukkan ke Kelengkapan Bahan (Hasil Filter)
-  form.elements['equipment'].value = allItemsText;
-  
-  // Kosongkan catatan tambahan
-  form.elements['description'].value = "";
+  // 3. Logika Percabangan: Update Data atau Input Baru
+  if (isUpdateMode) {
+    // --- MODE UPDATE (Dijalankan jika tombol dipicu dari Detail Pesanan) ---
+    showToast("Sedang menghubungkan transaksi...");
+    
+    google.script.run
+      .withSuccessHandler((response) => {
+        if (response.success) {
+          showToast("✓ Transaksi berhasil dihubungkan!");
+          closeImportModal();
+          closeDetail(); // Tutup modal detail agar data terbaru bisa dimuat ulang[cite: 1]
+          loadOrders();  // Refresh daftar antrian[cite: 1]
+        } else {
+          showToast("❌ Gagal: " + response.error);
+        }
+      })
+      .withFailureHandler((err) => {
+        showToast("❌ Kesalahan Server: Gagal update data");
+        console.error(err);
+      })
+      .updateTransactionData(selectedOrderId, allItemsText); // Kirim ke Kode.gs[cite: 1]
 
-  closeImportModal();
-  showToast("✓ Data berhasil diimport ke Kelengkapan!");
+  } else {
+    // --- MODE INPUT BARU (Isi Formulir Tambah Pesanan) ---[cite: 1]
+    const form = document.getElementById('add-order-form');
+    form.elements['customer'].value = data.customer;
+    form.elements['jobName'].value = firstItemName;
+    form.elements['quantity'].value = firstItemQty;
+    
+    // Masukkan ke field 'equipment' (Kelengkapan Bahan)[cite: 1]
+    form.elements['equipment'].value = allItemsText;
+    
+    // Kosongkan catatan tambahan manual[cite: 1]
+    form.elements['description'].value = "";
+
+    closeImportModal();
+    showToast("✓ Data transaksi diimport ke formulir!");
+  }
 }
-
     
 function closeImportModal() {
   document.getElementById('import-modal').classList.add('hidden');
@@ -1284,22 +1314,24 @@ async function preloadSheetData() {
 }
     
 // Perbarui fungsi buka modal agar lebih responsif
-async function openImportModal() {
+let isUpdateMode = false; // Variabel kontrol global
+
+async function openImportModal(isUpdate = false) {
+  isUpdateMode = isUpdate; // Menentukan apakah ini mode update atau input baru
+  
   const modal = document.getElementById('import-modal');
   modal.classList.remove('hidden');
   
-  // Jika data sudah ada (hasil preload), langsung tampilkan
-  if (rawSheetData.length > 0) {
-    renderImportList(rawSheetData);
-  } else {
-    // Jika karena suatu alasan data belum ada, baru tarik lagi
+  // Jika data belum ada, lakukan preload terlebih dahulu
+  if (rawSheetData.length === 0) {
+    showToast("Memuat data transaksi...");
     await preloadSheetData();
-    renderImportList(rawSheetData);
   }
   
+  renderImportList(rawSheetData);
   lucide.createIcons();
   
-  // Animasi masuk modal
+  // Animasi masuk modal[cite: 1]
   setTimeout(() => {
     modal.querySelector('.bg-white').classList.add('opacity-100');
   }, 10);
