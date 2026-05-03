@@ -757,7 +757,7 @@ async function handleFormSubmit(e) {
       await loadOrders();
       
       // Jalankan rekap otomatis ke Telegram/Clipboard
-     // processOrderRekap();
+   processOrderRekap();
 
       switchTab('antrian');
     } else {
@@ -1200,7 +1200,6 @@ function processOrderRekap(sendToTelegram = true) {
     return idA.localeCompare(idB, undefined, { numeric: true });
   });
 
-  // DAFTAR TAHAPAN (Ditambah Item di awal)
   const stages = ['Item', 'Desain', 'Cetak', 'Finishing', 'Packing'];
   
   let teksRekap = `🚨 *URGENT - HARI INI S/D 2 HARI KE DEPAN*\n`;
@@ -1246,12 +1245,18 @@ function processOrderRekap(sendToTelegram = true) {
         estimasiTahap = ` _Estimasi Selesai ${order.status} tgl ${formatWithMonth(new Date(order.statusDeadline))}_`;
       }
       
-      const progressVisual = stages.map((stage) => {
+      // LOGIKA FILTER: Hilangkan tahapan 'Item' jika data equipment kosong[cite: 1]
+      const activeStages = stages.filter(stage => {
+        if (stage === 'Item') {
+          return order.equipment && order.equipment.trim() !== "";
+        }
+        return true;
+      });
+
+      const progressVisual = activeStages.map((stage) => {
         let isDone = false;
 
-        // LOGIKA PENGECEKAN TAHAPAN
         if (stage === 'Item') {
-          // Cek kelengkapan bahan (Kolom L vs Kolom M)
           const rawEquip = order.equipment || "";
           const checkedEquip = (order.checkedEquipment || "").toLowerCase();
           if (rawEquip.includes(':')) {
