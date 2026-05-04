@@ -762,7 +762,8 @@ async function handleFormSubmit(e) {
       await loadOrders();
       
       // Jalankan rekap otomatis ke Telegram/Clipboard
-   processOrderRekap();
+   const infoBaru = `🆕 *ADA ORDERAN BARU MASUK!* \n👤 Pelanggan: ${orderData.customer}\n🛠 Pekerjaan: ${orderData.jobName}`;
+  processOrderRekap(true, infoBaru);
 
       switchTab('antrian');
     } else {
@@ -943,22 +944,39 @@ async function confirmStatus(newStatus) {
   const stageDl = document.getElementById('edit-status-deadline').value;
   const finalDl = document.getElementById('edit-final-deadline').value;
 
-  // Cari data pesanan sebelum update
-  const order = allOrders.find(o => o.id === selectedOrderId);
+  // Cari data pesanan sebelum update untuk perbandingan
+  const oldOrder = allOrders.find(o => o.id === selectedOrderId);
   
-  // 1. Update UI Lokal (Optimistic)
+  if (!oldOrder) {
+    showToast("❌ Data tidak ditemukan");
+    return;
+  }
+
+  // 1. Logika Deteksi Poin yang Diperbaharui
+  let perubahan = [];
+  if (oldOrder.status !== newStatus) {
+    perubahan.push(`• *Status*: ${oldOrder.status} ➡️ ${newStatus}`);
+  }
+  if (oldOrder.statusDeadline !== stageDl) {
+    perubahan.push(`• *Estimasi*: ${oldOrder.statusDeadline || '-'} ➡️ ${stageDl || '-'}`);
+  }
+  if (oldOrder.finalDeadline !== finalDl) {
+    perubahan.push(`• *Deadline*: ${oldOrder.finalDeadline || '-'} ➡️ ${finalDl || '-'}`);
+  }
+  
+  // 2. Update UI Lokal (Optimistic Update)
   const orderIdx = allOrders.findIndex(o => o.id === selectedOrderId);
   if (orderIdx !== -1) {
     allOrders[orderIdx].status = newStatus;
     allOrders[orderIdx].statusDeadline = stageDl;
     allOrders[orderIdx].finalDeadline = finalDl;
   }
-  
+    
   applyFilters();
   closeStatusModal();
   showToast("Menyimpan ke database...");
 
-  // 2. Kirim ke Google Apps Script menggunakan Fetch
+  // 3. Kirim ke Google Apps Script menggunakan Fetch
   const url = `${WEB_APP_URL}?action=updateStatus` +
               `&id=${encodeURIComponent(selectedOrderId)}` +
               `&status=${encodeURIComponent(newStatus)}` +
@@ -972,12 +990,23 @@ async function confirmStatus(newStatus) {
     if (result.success) {
       showToast("✓ Berhasil diperbarui!");
       
-      // 3. KIRIM REKAP KE TELEGRAM
-      // Menggunakan fungsi gabungan yang baru saja diperbarui
-      // Default parameter adalah true (Kirim ke Telegram + Salin Clipboard)
-      processOrderRekap();
+      // 4. SUSUN INFORMASI UPDATE UNTUK HEADER TELEGRAM
+      let infoUpdate = `🔄 *PERUBAHAN STATUS ORDER*\n`;
+      infoUpdate += `🆔 ID: ${selectedOrderId}\n`;
+      infoUpdate += `👤 Pelanggan: ${oldOrder.customer}\n`;
+      infoUpdate += `📋 Pekerjaan: ${oldOrder.jobName}\n`;
+      infoUpdate += `──────────────────\n`;
+      
+      if (perubahan.length > 0) {
+        infoUpdate += perubahan.join('\n');
+      } else {
+        infoUpdate += `_Data diperbarui (tanpa perubahan status/tgl)_`;
+      }
+
+      // Kirim rekap dengan header informasi perubahan di bagian paling atas
+      processOrderRekap(true, infoUpdate);
             
-      loadOrders(); // Refresh data untuk memastikan sinkronisasi
+      await loadOrders(); // Refresh data untuk memastikan sinkronisasi
     } else {
       showToast("❌ Gagal: " + (result.message || "Gagal simpan"));
     }
@@ -1206,6 +1235,12 @@ function processOrderRekap(sendToTelegram = true) {
   });
 
   const stages = ['Item', 'Desain', 'Cetak', 'Finishing', 'Packing'];
+
+  let teksRekap = "";
+  if (additionalInfo) {
+    teksRekap += `${additionalInfo}\n`;
+    teksRekap += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+  }
   
   let teksRekap = `🚨 *URGENT - HARI INI S/D 2 HARI KE DEPAN*\n`;
   teksRekap += `📦 Total Order: ${urgentCount} Order\n`;
