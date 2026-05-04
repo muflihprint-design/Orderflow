@@ -1171,7 +1171,7 @@ function renderList(targetId, orders, showDeadline) {
     }
 
 // FUNGSI NOTIFIKASI TELEGRAM
-function processOrderRekap(sendToTelegram = true) {
+function processOrderRekap(sendToTelegram = true, additionalInfo = "") {
   if (allOrders.length === 0) {
     showToast("Tidak ada data untuk direkap.");
     return;
