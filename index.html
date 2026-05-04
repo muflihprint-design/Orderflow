@@ -762,8 +762,7 @@ async function handleFormSubmit(e) {
       await loadOrders();
       
       // Jalankan rekap otomatis ke Telegram/Clipboard
-   const infoBaru = `🆕 *ADA ORDERAN BARU MASUK!* \n👤 Pelanggan: ${orderData.customer}\n🛠 Pekerjaan: ${orderData.jobName}`;
-  processOrderRekap(true, infoBaru);
+   processOrderRekap();
 
       switchTab('antrian');
     } else {
@@ -944,39 +943,22 @@ async function confirmStatus(newStatus) {
   const stageDl = document.getElementById('edit-status-deadline').value;
   const finalDl = document.getElementById('edit-final-deadline').value;
 
-  // Cari data pesanan sebelum update untuk perbandingan
-  const oldOrder = allOrders.find(o => o.id === selectedOrderId);
+  // Cari data pesanan sebelum update
+  const order = allOrders.find(o => o.id === selectedOrderId);
   
-  if (!oldOrder) {
-    showToast("❌ Data tidak ditemukan");
-    return;
-  }
-
-  // 1. Logika Deteksi Poin yang Diperbaharui
-  let perubahan = [];
-  if (oldOrder.status !== newStatus) {
-    perubahan.push(`• *Status*: ${oldOrder.status} ➡️ ${newStatus}`);
-  }
-  if (oldOrder.statusDeadline !== stageDl) {
-    perubahan.push(`• *Estimasi*: ${oldOrder.statusDeadline || '-'} ➡️ ${stageDl || '-'}`);
-  }
-  if (oldOrder.finalDeadline !== finalDl) {
-    perubahan.push(`• *Deadline*: ${oldOrder.finalDeadline || '-'} ➡️ ${finalDl || '-'}`);
-  }
-  
-  // 2. Update UI Lokal (Optimistic Update)
+  // 1. Update UI Lokal (Optimistic)
   const orderIdx = allOrders.findIndex(o => o.id === selectedOrderId);
   if (orderIdx !== -1) {
     allOrders[orderIdx].status = newStatus;
     allOrders[orderIdx].statusDeadline = stageDl;
     allOrders[orderIdx].finalDeadline = finalDl;
   }
-    
+  
   applyFilters();
   closeStatusModal();
   showToast("Menyimpan ke database...");
 
-  // 3. Kirim ke Google Apps Script menggunakan Fetch
+  // 2. Kirim ke Google Apps Script menggunakan Fetch
   const url = `${WEB_APP_URL}?action=updateStatus` +
               `&id=${encodeURIComponent(selectedOrderId)}` +
               `&status=${encodeURIComponent(newStatus)}` +
@@ -990,23 +972,12 @@ async function confirmStatus(newStatus) {
     if (result.success) {
       showToast("✓ Berhasil diperbarui!");
       
-      // 4. SUSUN INFORMASI UPDATE UNTUK HEADER TELEGRAM
-      let infoUpdate = `🔄 *PERUBAHAN STATUS ORDER*\n`;
-      infoUpdate += `🆔 ID: ${selectedOrderId}\n`;
-      infoUpdate += `👤 Pelanggan: ${oldOrder.customer}\n`;
-      infoUpdate += `📋 Pekerjaan: ${oldOrder.jobName}\n`;
-      infoUpdate += `──────────────────\n`;
-      
-      if (perubahan.length > 0) {
-        infoUpdate += perubahan.join('\n');
-      } else {
-        infoUpdate += `_Data diperbarui (tanpa perubahan status/tgl)_`;
-      }
-
-      // Kirim rekap dengan header informasi perubahan di bagian paling atas
-      processOrderRekap(true, infoUpdate);
+      // 3. KIRIM REKAP KE TELEGRAM
+      // Menggunakan fungsi gabungan yang baru saja diperbarui
+      // Default parameter adalah true (Kirim ke Telegram + Salin Clipboard)
+      processOrderRekap();
             
-      await loadOrders(); // Refresh data untuk memastikan sinkronisasi
+      loadOrders(); // Refresh data untuk memastikan sinkronisasi
     } else {
       showToast("❌ Gagal: " + (result.message || "Gagal simpan"));
     }
@@ -1171,7 +1142,7 @@ function renderList(targetId, orders, showDeadline) {
     }
 
 // FUNGSI NOTIFIKASI TELEGRAM
-function processOrderRekap(sendToTelegram = true, additionalInfo = "") {
+function processOrderRekap(sendToTelegram = true) {
   if (allOrders.length === 0) {
     showToast("Tidak ada data untuk direkap.");
     return;
@@ -1189,19 +1160,68 @@ function processOrderRekap(sendToTelegram = true, additionalInfo = "") {
   batasUrgent.setDate(sekarang.getDate() + 2);
   batasUrgent.setHours(23, 59, 59, 999);
 
+  // Variabel untuk Rangkuman Status (Belum Fix)
+  let countItem = 0, countDesain = 0, countRevisi = 0;
+  let countCetakNow = 0, qtyCetakNow = 0, countCetakWaiting = 0, qtyCetakWaiting = 0;
+  let countFinishingNow = 0, qtyFinishingNow = 0, countFinishingWaiting = 0, qtyFinishingWaiting = 0;
+
   let urgentCount = 0;
   let urgentQty = 0;
 
+  // Proses Hitung Rangkuman & Urgent
   allOrders.forEach(order => {
-    if (order.status !== 'Selesai' && order.status !== 'Kirim' && order.finalDeadline) {
+    const status = order.status;
+    const qty = parseInt(order.quantity || 0);
+
+    // Hitung Urgent
+    if (status !== 'Selesai' && status !== 'Kirim' && order.finalDeadline) {
       const dDeadline = new Date(order.finalDeadline);
       if (dDeadline >= sekarang && dDeadline <= batasUrgent) {
         urgentCount++;
-        urgentQty += parseInt(order.quantity || 0);
+        urgentQty += qty;
       }
+    }
+
+    // Logika Rangkuman Per Status
+    if (status === 'Item') countItem++;
+    if (status === 'Desain') countDesain++;
+    if (status === 'Revisi') countRevisi++;
+    
+    // Logika Cetak
+    if (status === 'Cetak' || status === 'Konfirmasi') {
+      countCetakNow++;
+      qtyCetakNow += qty;
+    } else if (['Item', 'Desain', 'Revisi'].includes(status)) {
+      countCetakWaiting++;
+      qtyCetakWaiting += qty;
+    }
+
+    // Logika Finishing
+    if (status === 'Finishing') {
+      countFinishingNow++;
+      qtyFinishingNow += qty;
+    } else if (['Item', 'Desain', 'Revisi', 'Cetak', 'Konfirmasi'].includes(status)) {
+      countFinishingWaiting++;
+      qtyFinishingWaiting += qty;
     }
   });
 
+  // Susun Teks Rangkuman Paling Atas
+  let teksRekap = `📊 *RANGKUMAN STATUS (BELUM FIX)*\n`;
+  teksRekap += `• Item: ${countItem} Orderan\n`;
+  teksRekap += `• Desain: ${countDesain} Orderan\n`;
+  teksRekap += `• Revisi Desain: ${countRevisi} Orderan\n`;
+  teksRekap += `• Cetak: ${countCetakNow} Orderan (${qtyCetakNow.toLocaleString()} pcs), ${countCetakWaiting} orderan masih proses desain/revisi (${qtyCetakWaiting.toLocaleString()} pcs)\n`;
+  teksRekap += `• Finishing: ${countFinishingNow} Orderan (${qtyFinishingNow.toLocaleString()} pcs), ${countFinishingWaiting} Orderan masih proses desain/revisi/cetak (${qtyFinishingWaiting.toLocaleString()} pcs)\n`;
+  teksRekap += `--------------------------\n\n`;
+
+  // Bagian Urgent
+  teksRekap += `🚨 *URGENT - HARI INI S/D 2 HARI KE DEPAN*\n`;
+  teksRekap += `📦 Total Order: ${urgentCount} Order\n`;
+  teksRekap += `🔢 Total Qty  : ${urgentQty.toLocaleString()}\n`;
+  teksRekap += `--------------------------\n\n`;
+
+  // Filter & Sortir List Orderan
   const rekapOrders = allOrders.filter(order => {
     const tglSelesai = order.finalDeadline ? new Date(order.finalDeadline) : null;
     if (order.status !== 'Selesai') return true;
@@ -1235,22 +1255,7 @@ function processOrderRekap(sendToTelegram = true, additionalInfo = "") {
   });
 
   const stages = ['Item', 'Desain', 'Cetak', 'Finishing', 'Packing'];
-
-let teksRekap = "";
-
-  // 1. Tambahkan info tambahan (Order Baru / Update Status) jika ada
-  if (additionalInfo) {
-    teksRekap += `${additionalInfo}\n`;
-    teksRekap += `━━━━━━━━━━━━━━━━━━━━\n\n`;
-  }
-
-  // 2. Tambahkan bagian URGENT (Gunakan += agar tidak menimpa info di atas)
-  teksRekap += `🚨 *URGENT - HARI INI S/D 2 HARI KE DEPAN*\n`;
-  teksRekap += `📦 Total Order: ${urgentCount} Order\n`;
-  teksRekap += `🔢 Total Qty  : ${urgentQty.toLocaleString()}\n`;
-  teksRekap += `--------------------------\n\n`;
-
-  // 3. Tambahkan bagian LIST UTAMA
+  
   teksRekap += `📝 *LIST ORDERAN ${namaBulanHeader}*\n`;
   teksRekap += `--------------------------\n`;
 
@@ -1289,7 +1294,6 @@ let teksRekap = "";
         estimasiTahap = ` _Estimasi Selesai ${order.status} tgl ${formatWithMonth(new Date(order.statusDeadline))}_`;
       }
       
-      // LOGIKA FILTER: Hilangkan tahapan 'Item' jika data equipment kosong[cite: 1]
       const activeStages = stages.filter(stage => {
         if (stage === 'Item') {
           return order.equipment && order.equipment.trim() !== "";
@@ -1299,7 +1303,6 @@ let teksRekap = "";
 
       const progressVisual = activeStages.map((stage) => {
         let isDone = false;
-
         if (stage === 'Item') {
           const rawEquip = order.equipment || "";
           const checkedEquip = (order.checkedEquipment || "").toLowerCase();
@@ -1320,7 +1323,6 @@ let teksRekap = "";
           const stageIndex = stages.indexOf(stage);
           isDone = currentIndex > stageIndex && currentIndex !== -1;
         }
-
         return isDone ? `${stage}✅` : stage;
       }).join(', ');
 
