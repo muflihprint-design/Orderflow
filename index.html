@@ -1236,17 +1236,21 @@ function processOrderRekap(sendToTelegram = true) {
 
   const stages = ['Item', 'Desain', 'Cetak', 'Finishing', 'Packing'];
 
-  let teksRekap = "";
+let teksRekap = "";
+
+  // 1. Tambahkan info tambahan (Order Baru / Update Status) jika ada
   if (additionalInfo) {
     teksRekap += `${additionalInfo}\n`;
     teksRekap += `━━━━━━━━━━━━━━━━━━━━\n\n`;
   }
-  
-  let teksRekap = `🚨 *URGENT - HARI INI S/D 2 HARI KE DEPAN*\n`;
+
+  // 2. Tambahkan bagian URGENT (Gunakan += agar tidak menimpa info di atas)
+  teksRekap += `🚨 *URGENT - HARI INI S/D 2 HARI KE DEPAN*\n`;
   teksRekap += `📦 Total Order: ${urgentCount} Order\n`;
   teksRekap += `🔢 Total Qty  : ${urgentQty.toLocaleString()}\n`;
   teksRekap += `--------------------------\n\n`;
 
+  // 3. Tambahkan bagian LIST UTAMA
   teksRekap += `📝 *LIST ORDERAN ${namaBulanHeader}*\n`;
   teksRekap += `--------------------------\n`;
 
