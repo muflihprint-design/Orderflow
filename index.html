@@ -1183,7 +1183,26 @@ function processOrderRekap(sendToTelegram = true) {
     }
 
     // Logika Rangkuman Per Status
-    if (status === 'Item') countItem++;
+   // Ganti bagian: if (status === 'Item') countItem++; dengan ini:
+
+const rawEquip = order.equipment || "";
+const checkedEquip = (order.checkedEquipment || "").toLowerCase();
+let itemBelumLengkap = false;
+
+if (rawEquip.includes(':')) {
+  const itemsArray = rawEquip.split(':')[1].split(',').map(i => i.trim().toLowerCase());
+  // Cek apakah ada item yang TIDAK ada di checkedEquip
+  const isAllChecked = itemsArray.every(item => checkedEquip.includes(item));
+  if (!isAllChecked) itemBelumLengkap = true;
+} else if (rawEquip.trim() !== "") {
+  // Jika ada list equipment tapi tidak ada format ":"
+  itemBelumLengkap = true; 
+}
+
+// Tambahkan ke countItem jika barang belum lengkap DAN status bukan Selesai/Kirim
+if (itemBelumLengkap && !['Selesai', 'Kirim'].includes(status)) {
+  countItem++;
+}
     if (status === 'Desain') countDesain++;
     if (status === 'Revisi') countRevisi++;
     
