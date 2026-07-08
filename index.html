@@ -354,6 +354,19 @@
          <h2 class="text-2xl font-black text-gray-900 italic">Arsip Selesai</h2>
          <p class="text-sm text-gray-500">Daftar semua pesanan yang sudah tuntas dikerjakan.</p>
        </div>
+       
+       <div class="mb-5 space-y-4">
+         <div class="relative">
+           <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+           <input type="text" id="search-selesai" oninput="applyFilters()" placeholder="Cari arsip selesai (nama atau kerjaan)..." 
+                  class="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl outline-none shadow-sm text-sm focus:ring-2 focus:ring-blue-500/20">
+         </div>
+         <div class="flex gap-2">
+           <button id="btn-page-20" onclick="setPagination(20)" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm">Tampilkan 20</button>
+           <button id="btn-page-all" onclick="setPagination('all')" class="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-bold transition-all shadow-sm">Tampilkan Semua</button>
+         </div>
+       </div>
+
        <div id="completed-list" class="space-y-4"></div>
     </div>
   </main>
@@ -494,6 +507,7 @@
     lucide.createIcons();
 
 let rawSheetData = [];
+let selesaiLimit = 20;
 
 // Fungsi untuk membuka modal dan mengambil data
 
@@ -996,13 +1010,17 @@ async function confirmStatus(newStatus) {
     }
 
     function applyFilters() {
-  const searchTerm = document.getElementById('search-input').value.toLowerCase();
+  // Ambil nilai pencarian secara terpisah agar tidak saling bertabrakan
+  const searchAntrianInput = document.getElementById('search-input');
+  const searchAntrian = searchAntrianInput ? searchAntrianInput.value.toLowerCase() : "";
   
-  // Memisahkan pesanan aktif dan yang sudah selesai
+  const searchSelesaiInput = document.getElementById('search-selesai');
+  const searchSelesai = searchSelesaiInput ? searchSelesaiInput.value.toLowerCase() : "";
+  
   const aktifOrders = allOrders.filter(o => o.status !== 'Selesai');
   const selesaiOrders = allOrders.filter(o => o.status === 'Selesai');
-
-  // Update Counts berdasarkan tahapan terbaru: Desain, Revisi, Konfirmasi, Cetak, Finishing, Packing, Kirim
+  
+  // Menghitung jumlah untuk masing-masing status pada Filter Bar
   const counts = {
     aktif: aktifOrders.length,
     desain: allOrders.filter(o => o.status === 'Desain').length,
@@ -1014,7 +1032,7 @@ async function confirmStatus(newStatus) {
     kirim: allOrders.filter(o => o.status === 'Kirim').length
   };
 
-  // Memasukkan angka jumlah ke elemen badge di HTML
+  // Masukkan angka jumlah ke elemen badge di HTML
   for (const [k, v] of Object.entries(counts)) {
     const el = document.getElementById('count-' + k);
     if (el) el.textContent = v;
@@ -1022,19 +1040,28 @@ async function confirmStatus(newStatus) {
 
   // Filter untuk daftar Antrian Aktif
   const filteredAktif = aktifOrders.filter(o => {
-    const matchesSearch = `${o.customer} ${o.jobName}`.toLowerCase().includes(searchTerm);
+    const matchesSearch = `${o.customer} ${o.jobName}`.toLowerCase().includes(searchAntrian);
     const matchesStatus = currentFilter === 'Aktif' ? true : o.status === currentFilter;
     return matchesSearch && matchesStatus;
   });
 
-  // Filter untuk daftar Arsip Selesai
-  const filteredSelesai = selesaiOrders.filter(o => {
-    return `${o.customer} ${o.jobName}`.toLowerCase().includes(searchTerm);
+  // Filter untuk daftar Arsip Selesai (berdasarkan pencarian search-selesai)
+  let filteredSelesai = selesaiOrders.filter(o => {
+    return `${o.customer} ${o.jobName}`.toLowerCase().includes(searchSelesai);
   });
+  
+  // Terapkan paginasi (batasan 20) pada data selesai jika belum diset ke 'all'
+  if (selesaiLimit !== 'all') {
+    filteredSelesai = filteredSelesai.slice(0, selesaiLimit);
+  }
 
   // Render hasil ke UI
-  renderList('order-list', filteredAktif, true); // Menampilkan progress tracker & deadline
-  renderList('completed-list', filteredSelesai, false); // Sembunyikan detail waktu untuk arsip
+  renderList('order-list', filteredAktif, true); 
+  renderList('completed-list', filteredSelesai, false); 
+  
+  if (window.lucide) {
+    lucide.createIcons();
+  }
 }
 
 function renderList(targetId, orders, showDeadline) {
@@ -1415,6 +1442,26 @@ async function openImportModal(isUpdate = false) {
   setTimeout(() => {
     modal.querySelector('.bg-white').classList.add('opacity-100');
   }, 10);
+}
+
+
+function setPagination(limit) {
+  selesaiLimit = limit;
+  
+  const btn20 = document.getElementById('btn-page-20');
+  const btnAll = document.getElementById('btn-page-all');
+  
+  // Ubah gaya tombol berdasarkan pilihan
+  if (limit === 20) {
+    btn20.className = "px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm";
+    btnAll.className = "px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-bold transition-all shadow-sm";
+  } else {
+    btnAll.className = "px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm";
+    btn20.className = "px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-bold transition-all shadow-sm";
+  }
+  
+  // Panggil ulang filter untuk merender ulang daftar Selesai
+  applyFilters();
 }
     
    window.onload = () => {
