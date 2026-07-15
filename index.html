@@ -509,7 +509,35 @@
 let rawSheetData = [];
 let selesaiLimit = 20;
 
-// Fungsi untuk membuka modal dan mengambil data
+// Versi lokal aplikasi saat ini
+const APP_VERSION = "1.0.1"; 
+
+async function checkForUpdates() {
+  try {
+    // KUNCINYA DI SINI: Kita gabungkan WEB_APP_URL dengan parameter khusus
+    const urlCekVersi = WEB_APP_URL + "?action=cek_versi";
+    
+    const response = await fetch(urlCekVersi, { cache: 'no-store' });
+    const data = await response.json();
+    const latestVersion = data.version; 
+
+    if (latestVersion && latestVersion !== APP_VERSION) {
+      if (typeof showToast === 'function') {
+        showToast("Versi baru tersedia. Memuat ulang...");
+      }
+      setTimeout(() => {
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('v', latestVersion); 
+        window.location.replace(currentUrl.toString());
+      }, 1500); 
+    }
+  } catch (error) {
+    console.error("Gagal mengecek versi:", error);
+  }
+}
+
+// Jalankan otomatis
+document.addEventListener('DOMContentLoaded', checkForUpdates);
 
 // Fungsi untuk menampilkan daftar di modal
 function renderImportList(data) {
