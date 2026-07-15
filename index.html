@@ -1203,13 +1203,8 @@ function processOrderRekap(sendToTelegram = true) {
     return;
   }
 
-  const bulanNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
   const sekarang = new Date();
   sekarang.setHours(0, 0, 0, 0);
-  
-  const bulanIni = sekarang.getMonth();
-  const tahunIni = sekarang.getFullYear();
-  const namaBulanHeader = bulanNames[bulanIni].toUpperCase();
   
   const batasUrgent = new Date();
   batasUrgent.setDate(sekarang.getDate() + 2);
@@ -1222,6 +1217,7 @@ function processOrderRekap(sendToTelegram = true) {
 
   let urgentCount = 0;
   let urgentQty = 0;
+  let urgentOrdersList = []; 
 
   // Proses Hitung Rangkuman & Urgent
   allOrders.forEach(order => {
@@ -1234,30 +1230,27 @@ function processOrderRekap(sendToTelegram = true) {
       if (dDeadline >= sekarang && dDeadline <= batasUrgent) {
         urgentCount++;
         urgentQty += qty;
+        urgentOrdersList.push(order); 
       }
     }
 
     // Logika Rangkuman Per Status
-   // Ganti bagian: if (status === 'Item') countItem++; dengan ini:
+    const rawEquip = order.equipment || "";
+    const checkedEquip = (order.checkedEquipment || "").toLowerCase();
+    let itemBelumLengkap = false;
 
-const rawEquip = order.equipment || "";
-const checkedEquip = (order.checkedEquipment || "").toLowerCase();
-let itemBelumLengkap = false;
+    if (rawEquip.includes(':')) {
+      const itemsArray = rawEquip.split(':')[1].split(',').map(i => i.trim().toLowerCase());
+      const isAllChecked = itemsArray.every(item => checkedEquip.includes(item));
+      if (!isAllChecked) itemBelumLengkap = true;
+    } else if (rawEquip.trim() !== "") {
+      itemBelumLengkap = true; 
+    }
 
-if (rawEquip.includes(':')) {
-  const itemsArray = rawEquip.split(':')[1].split(',').map(i => i.trim().toLowerCase());
-  // Cek apakah ada item yang TIDAK ada di checkedEquip
-  const isAllChecked = itemsArray.every(item => checkedEquip.includes(item));
-  if (!isAllChecked) itemBelumLengkap = true;
-} else if (rawEquip.trim() !== "") {
-  // Jika ada list equipment tapi tidak ada format ":"
-  itemBelumLengkap = true; 
-}
-
-// Tambahkan ke countItem jika barang belum lengkap DAN status bukan Selesai/Kirim
-if (itemBelumLengkap && !['Selesai', 'Kirim'].includes(status)) {
-  countItem++;
-}
+    if (itemBelumLengkap && !['Selesai', 'Kirim'].includes(status)) {
+      countItem++;
+    }
+    
     if (status === 'Desain') countDesain++;
     if (status === 'Revisi') countRevisi++;
     
@@ -1289,121 +1282,64 @@ if (itemBelumLengkap && !['Selesai', 'Kirim'].includes(status)) {
   teksRekap += `• Finishing: ${countFinishingNow} Orderan (${qtyFinishingNow.toLocaleString()} pcs), ${countFinishingWaiting} Orderan masih proses desain/revisi/cetak (${qtyFinishingWaiting.toLocaleString()} pcs)\n`;
   teksRekap += `--------------------------\n\n`;
 
-  // Bagian Urgent
-  teksRekap += `🚨 *URGENT - HARI INI S/D 2 HARI KE DEPAN*\n`;
-  teksRekap += `📦 Total Order: ${urgentCount} Order\n`;
-  teksRekap += `🔢 Total Qty  : ${urgentQty.toLocaleString()}\n`;
+  // --- BAGIAN URGENT ---
+  let countHariIni = 0, qtyHariIni = 0, listHariIni = "";
+  let countBesok = 0, qtyBesok = 0, listBesok = "";
+  let countLusa = 0, qtyLusa = 0, listLusa = "";
+
+  if (urgentOrdersList.length > 0) {
+    urgentOrdersList.sort((a, b) => new Date(a.finalDeadline) - new Date(b.finalDeadline));
+    
+    urgentOrdersList.forEach((uOrder) => {
+      const dDead = new Date(uOrder.finalDeadline);
+      dDead.setHours(0, 0, 0, 0);
+      const selisihHari = Math.round((dDead.getTime() - sekarang.getTime()) / (1000 * 3600 * 24));
+      const q = parseInt(uOrder.quantity || 0);
+      
+      // Mengambil info tahap/status saat ini
+      const tahap = uOrder.status ? uOrder.status.toUpperCase() : "BELUM ADA";
+      
+      // Menambahkan tahap ke dalam teks list (contoh: ➔ [CETAK])
+      const teksLine = `- ${uOrder.customer}: ${uOrder.jobName} (x${q}) ➔ *[${tahap}]*\n`;
+
+      if (selisihHari === 0) {
+        countHariIni++;
+        qtyHariIni += q;
+        listHariIni += teksLine;
+      } else if (selisihHari === 1) {
+        countBesok++;
+        qtyBesok += q;
+        listBesok += teksLine;
+      } else if (selisihHari === 2) {
+        countLusa++;
+        qtyLusa += q;
+        listLusa += teksLine;
+      }
+    });
+  }
+
+  teksRekap += `🚨 *URGENT - HARI INI S/D LUSA*\n`;
+  teksRekap += `📦 Total Keseluruhan: ${urgentCount} Order (${urgentQty.toLocaleString()} pcs)\n`;
   teksRekap += `--------------------------\n\n`;
 
-  // Filter & Sortir List Orderan
-  const rekapOrders = allOrders.filter(order => {
-    const tglSelesai = order.finalDeadline ? new Date(order.finalDeadline) : null;
-    if (order.status !== 'Selesai') return true;
-    if (order.status === 'Selesai' && tglSelesai) {
-      return tglSelesai.getMonth() === bulanIni && tglSelesai.getFullYear() === tahunIni;
-    }
-    return false;
-  });
-
-  const formatStandardDate = (dateVal) => {
-    if (!dateVal) return new Date(0);
-    if (dateVal instanceof Date) return dateVal;
-    const m = String(dateVal).match(/\d+/g);
-    if (!m || m.length < 3) return new Date(0);
-    return new Date(m[0], parseInt(m[1]) - 1, m[2], parseInt(m[3] || 0), parseInt(m[4] || 0));
-  };
-
-  const formatWithMonth = (dateObj) => {
-    if (!dateObj || isNaN(dateObj.getTime())) return "";
-    const tgl = String(dateObj.getDate()).padStart(2, '0');
-    if (dateObj.getMonth() !== bulanIni) {
-      return `${tgl} ${bulanNames[dateObj.getMonth()]}`;
-    }
-    return tgl;
-  };
-
-  rekapOrders.sort((a, b) => {
-    const idA = (a.id || "").toUpperCase();
-    const idB = (b.id || "").toUpperCase();
-    return idA.localeCompare(idB, undefined, { numeric: true });
-  });
-
-  const stages = ['Item', 'Desain', 'Cetak', 'Finishing', 'Packing'];
+  if (countHariIni > 0) {
+    teksRekap += `🔥 *HARI INI* (${countHariIni} Order | ${qtyHariIni.toLocaleString()} pcs)\n`;
+    teksRekap += listHariIni + `\n`;
+  }
+  if (countBesok > 0) {
+    teksRekap += `⚡ *BESOK* (${countBesok} Order | ${qtyBesok.toLocaleString()} pcs)\n`;
+    teksRekap += listBesok + `\n`;
+  }
+  if (countLusa > 0) {
+    teksRekap += `⚠️ *LUSA* (${countLusa} Order | ${qtyLusa.toLocaleString()} pcs)\n`;
+    teksRekap += listLusa + `\n`;
+  }
   
-  teksRekap += `📝 *LIST ORDERAN ${namaBulanHeader}*\n`;
-  teksRekap += `--------------------------\n`;
+  if (urgentCount === 0) {
+    teksRekap += `_Tidak ada orderan urgent saat ini._\n\n`;
+  }
 
-  rekapOrders.forEach((order, index) => {
-    let infoWaktu = "";
-    if (order.entryDate) {
-      const d = formatStandardDate(order.entryDate);
-      infoWaktu = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} `; 
-    }
-
-    let qtyText = order.quantity ? `x${order.quantity},` : ",";
-    let isUrgentList = false;
-    let urgentIcon = ""; 
-    
-    if (order.finalDeadline && !['Selesai', 'Kirim'].includes(order.status)) {
-      const dDeadline = new Date(order.finalDeadline);
-      if (dDeadline >= sekarang && dDeadline <= batasUrgent) {
-        isUrgentList = true;
-        urgentIcon = "💓 "; 
-      }
-    }
-
-    let contentHeader = `${infoWaktu}${urgentIcon}${order.customer}: ${order.jobName} ${qtyText}`;
-    let barisHeader = isUrgentList ? `${index + 1}. *${contentHeader}*` : `${index + 1}. ${contentHeader}`;
-    let infoTarget = order.finalDeadline ? ` Target Selesai tgl ${formatWithMonth(new Date(order.finalDeadline))}` : "";
-
-    if (order.status === 'Selesai') {
-      teksRekap += `${barisHeader}${infoTarget} ✅\n\n`; 
-    } 
-    else if (order.status === 'Kirim') {
-      teksRekap += `${barisHeader} _siap dikirim/ambil_,${infoTarget} ✅\n\n`;
-    } 
-    else {
-      let estimasiTahap = "";
-      if (order.statusDeadline) {
-        estimasiTahap = ` _Estimasi Selesai ${order.status} tgl ${formatWithMonth(new Date(order.statusDeadline))}_`;
-      }
-      
-      const activeStages = stages.filter(stage => {
-        if (stage === 'Item') {
-          return order.equipment && order.equipment.trim() !== "";
-        }
-        return true;
-      });
-
-      const progressVisual = activeStages.map((stage) => {
-        let isDone = false;
-        if (stage === 'Item') {
-          const rawEquip = order.equipment || "";
-          const checkedEquip = (order.checkedEquipment || "").toLowerCase();
-          if (rawEquip.includes(':')) {
-            const itemsArray = rawEquip.split(':')[1].split(',').map(i => i.trim().toLowerCase());
-            isDone = itemsArray.every(item => checkedEquip.includes(item));
-          } else {
-            isDone = false;
-          }
-        } 
-        else if (stage === 'Desain') {
-          isDone = !['Desain', 'Revisi'].includes(order.status);
-        } 
-        else {
-          let effStatus = order.status;
-          if (order.status === 'Konfirmasi') effStatus = 'Cetak';
-          const currentIndex = stages.indexOf(effStatus);
-          const stageIndex = stages.indexOf(stage);
-          isDone = currentIndex > stageIndex && currentIndex !== -1;
-        }
-        return isDone ? `${stage}✅` : stage;
-      }).join(', ');
-
-      teksRekap += `${barisHeader}${estimasiTahap}\n   (${progressVisual}),${infoTarget}\n\n`;
-    }
-  });
-
+  // Pengiriman dan Copy API
   navigator.clipboard.writeText(teksRekap).then(() => {
     if (!sendToTelegram) showToast("Rekap disalin!");
   });
@@ -1415,7 +1351,7 @@ if (itemBelumLengkap && !['Selesai', 'Kirim'].includes(status)) {
     fetch(url).then(res => { if(res.ok) showToast("✓ Rekap terkirim!"); });
   }
 }
-    
+
     // Fungsi untuk memuat data di awal (background process)
 async function preloadSheetData() {
   const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvAQXltAVp8lnrXXVVPJr1hYEi8cAJrqz182qT23eaiI8t-MoBrEtE7bAAJqKEyKKTig4hpA9DNuQB/pub?gid=2057149863&single=true&output=csv";
