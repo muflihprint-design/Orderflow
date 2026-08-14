@@ -580,14 +580,35 @@ async function selectTransaction(index) {
   
   if (items.length === 0) return;
 
-  // 1. Ambil data dasar dari transaksi
+  // 1. Ambil nama item pertama sebagai acuan
   const firstItemName = items[0].nama;
-  const firstItemQty = items[0].qty;
+  let totalFirstItemQty = 0;
+
+  // LOGIKA BARU: Jumlahkan qty jika nama barang sama dengan firstItemName
+  items.forEach(item => {
+    if (item.nama === firstItemName) {
+      totalFirstItemQty += parseInt(item.qty) || 0;
+    }
+  });
 
   // 2. Format Kelengkapan Bahan: Filter kategori yang BUKAN "TTH"
   const filteredItems = items.filter(it => it.kategori !== "TTH");
+
+  // LOGIKA BARU: Menggabungkan Qty untuk item dengan nama yang sama
+  const groupedItems = filteredItems.reduce((acc, item) => {
+    // Jika nama barang sudah ada di dalam memori (acc), tambahkan qty-nya
+    if (acc[item.nama]) {
+      acc[item.nama] += parseInt(item.qty) || 0;
+    } else {
+      // Jika belum ada, masukkan sebagai barang baru
+      acc[item.nama] = parseInt(item.qty) || 0;
+    }
+    return acc;
+  }, {});
+
+  // Mengubah hasil gabungan menjadi teks "Nama (xQty)" dan menyatukannya
   const allItemsText = `${data.id}: ` + 
-    filteredItems.map(it => `${it.nama} (x${it.qty})`).join(', ');
+    Object.entries(groupedItems).map(([nama, qty]) => `${nama} (x${qty})`).join(', ');
 
   // 3. Logika Percabangan: Update Data atau Input Baru
   if (isUpdateMode) {
@@ -595,8 +616,6 @@ async function selectTransaction(index) {
     showToast("Menghubungkan data transaksi...");
     
     try {
-      // Mengirim data ke Apps Script via Fetch API[cite: 1]
-      // Pastikan WEB_APP_URL adalah URL /exec dari deployment Anda
       const response = await fetch(`${WEB_APP_URL}?action=updateTransactionData&orderId=${encodeURIComponent(selectedOrderId)}&equipmentText=${encodeURIComponent(allItemsText)}`);
       
       if (!response.ok) throw new Error("Gagal terhubung ke server.");
@@ -606,8 +625,8 @@ async function selectTransaction(index) {
       if (res.success) {
         showToast("✓ Transaksi berhasil dihubungkan!");
         closeImportModal();
-        closeDetail(); // Tutup modal detail[cite: 1]
-        loadOrders();  // Refresh daftar antrian secara otomatis[cite: 1]
+        closeDetail(); 
+        loadOrders();  
       } else {
         showToast("❌ Gagal: " + res.error);
       }
@@ -617,23 +636,25 @@ async function selectTransaction(index) {
     }
 
   } else {
-    // --- MODE INPUT BARU (Isi Formulir Tambah Pesanan) ---[cite: 1]
+    // --- MODE INPUT BARU (Isi Formulir Tambah Pesanan) ---
     const form = document.getElementById('add-order-form');
     form.elements['customer'].value = data.customer;
     form.elements['jobName'].value = firstItemName;
-    form.elements['quantity'].value = firstItemQty;
     
-    // Masukkan ke field 'equipment' (Kelengkapan Bahan)[cite: 1]
+    // Gunakan total kuantitas yang sudah dijumlahkan di sini
+    form.elements['quantity'].value = totalFirstItemQty; 
+    
+    // Masukkan ke field 'equipment' (Kelengkapan Bahan)
     form.elements['equipment'].value = allItemsText;
     
-    // Kosongkan catatan tambahan manual[cite: 1]
+    // Kosongkan catatan tambahan manual
     form.elements['description'].value = "";
 
     closeImportModal();
     showToast("✓ Data transaksi diimport ke formulir!");
   }
 }
-    
+
 function closeImportModal() {
   document.getElementById('import-modal').classList.add('hidden');
   document.getElementById('search-import').value = "";
