@@ -549,6 +549,19 @@ function renderImportList(data) {
 
   container.innerHTML = data.map((entry, index) => {
     const firstItem = entry.items[0] || { nama: 'Tidak ada item', qty: 0 };
+    
+    // --- LOGIKA BARU: Menjumlahkan QTY untuk nama barang yang sama ---
+    let totalFirstItemQty = 0;
+    if (entry.items && entry.items.length > 0) {
+      entry.items.forEach(item => {
+        // Jika nama barang sama dengan barang pertama, jumlahkan qty-nya
+        if (item.nama === firstItem.nama) {
+          totalFirstItemQty += parseInt(item.qty) || 0;
+        }
+      });
+    }
+    // ------------------------------------------------------------------
+
     return `
       <div onclick="selectTransaction(${rawSheetData.indexOf(entry)})" class="p-4 bg-gray-50 border border-gray-100 rounded-2xl active:scale-[0.98] transition-all cursor-pointer hover:border-blue-300">
         <div class="flex justify-between items-start">
@@ -556,7 +569,8 @@ function renderImportList(data) {
             <p class="text-[10px] font-bold text-blue-600 uppercase mb-1">${entry.customer}</p>
             <h4 class="font-bold text-gray-800 text-sm">${firstItem.nama}</h4>
           </div>
-          <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-lg text-[10px] font-black">QTY: ${firstItem.qty}</span>
+          <!-- Ubah variabel dari firstItem.qty menjadi totalFirstItemQty -->
+          <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-lg text-[10px] font-black">QTY: ${totalFirstItemQty}</span>
         </div>
       </div>
     `;
