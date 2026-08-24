@@ -184,7 +184,7 @@
   <main class="max-w-2xl mx-auto">
     
     <!-- PAGE: ANTRIAN -->
-    <div id="page-antrian" class="page active p-4">
+    <div id="page-antrian" class="page active p-4 pb-32">
       <div class="mb-5 space-y-4">
         <div class="relative">
           <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
@@ -349,7 +349,7 @@
 </div>
 
     <!-- PAGE: SELESAI -->
-    <div id="page-selesai" class="page p-4">
+    <div id="page-selesai" class="page p-4 pb-32">
        <div class="mb-5">
          <h2 class="text-2xl font-black text-gray-900 italic">Arsip Selesai</h2>
          <p class="text-sm text-gray-500">Daftar semua pesanan yang sudah tuntas dikerjakan.</p>
@@ -1231,7 +1231,6 @@ function renderList(targetId, orders, showDeadline) {
       setTimeout(() => toast.classList.remove("show"), 3000);
     }
 
-// FUNGSI NOTIFIKASI TELEGRAM
 function processOrderRekap(sendToTelegram = true) {
   if (allOrders.length === 0) {
     showToast("Tidak ada data untuk direkap.");
@@ -1259,10 +1258,10 @@ function processOrderRekap(sendToTelegram = true) {
     const status = order.status;
     const qty = parseInt(order.quantity || 0);
 
-    // Hitung Urgent
+    // Hitung Urgent & Telat (Semua deadline <= batas lusa)
     if (status !== 'Selesai' && status !== 'Kirim' && order.finalDeadline) {
       const dDeadline = new Date(order.finalDeadline);
-      if (dDeadline >= sekarang && dDeadline <= batasUrgent) {
+      if (dDeadline <= batasUrgent) { // HAPUS 'dDeadline >= sekarang' agar deadline masa lalu ikut masuk
         urgentCount++;
         urgentQty += qty;
         urgentOrdersList.push(order); 
@@ -1317,7 +1316,8 @@ function processOrderRekap(sendToTelegram = true) {
   teksRekap += `• Finishing: ${countFinishingNow} Orderan (${qtyFinishingNow.toLocaleString()} pcs), ${countFinishingWaiting} Orderan masih proses desain/revisi/cetak (${qtyFinishingWaiting.toLocaleString()} pcs)\n`;
   teksRekap += `--------------------------\n\n`;
 
-  // --- BAGIAN URGENT ---
+  // --- BAGIAN URGENT & TELAT ---
+  let countTelat = 0, qtyTelat = 0, listTelat = "";
   let countHariIni = 0, qtyHariIni = 0, listHariIni = "";
   let countBesok = 0, qtyBesok = 0, listBesok = "";
   let countLusa = 0, qtyLusa = 0, listLusa = "";
@@ -1331,13 +1331,15 @@ function processOrderRekap(sendToTelegram = true) {
       const selisihHari = Math.round((dDead.getTime() - sekarang.getTime()) / (1000 * 3600 * 24));
       const q = parseInt(uOrder.quantity || 0);
       
-      // Mengambil info tahap/status saat ini
       const tahap = uOrder.status ? uOrder.status.toUpperCase() : "BELUM ADA";
-      
-      // Menambahkan tahap ke dalam teks list (contoh: ➔ [CETAK])
       const teksLine = `- ${uOrder.customer}: ${uOrder.jobName} (x${q}) ➔ *[${tahap}]*\n`;
 
-      if (selisihHari === 0) {
+      if (selisihHari < 0) {
+        // Jika selisih hari minus (artinya telat)
+        countTelat++;
+        qtyTelat += q;
+        listTelat += `- ${uOrder.customer}: ${uOrder.jobName} (x${q}) ➔ *[${tahap}]* _(Telat ${Math.abs(selisihHari)} hari)_\n`;
+      } else if (selisihHari === 0) {
         countHariIni++;
         qtyHariIni += q;
         listHariIni += teksLine;
@@ -1353,10 +1355,14 @@ function processOrderRekap(sendToTelegram = true) {
     });
   }
 
-  teksRekap += `🚨 *URGENT - HARI INI S/D LUSA*\n`;
+  teksRekap += `🚨 *URGENT & TELAT DEADLINE*\n`;
   teksRekap += `📦 Total Keseluruhan: ${urgentCount} Order (${urgentQty.toLocaleString()} pcs)\n`;
   teksRekap += `--------------------------\n\n`;
 
+  if (countTelat > 0) {
+    teksRekap += `❌ *TELAT DEADLINE* (${countTelat} Order | ${qtyTelat.toLocaleString()} pcs)\n`;
+    teksRekap += listTelat + `\n`;
+  }
   if (countHariIni > 0) {
     teksRekap += `🔥 *HARI INI* (${countHariIni} Order | ${qtyHariIni.toLocaleString()} pcs)\n`;
     teksRekap += listHariIni + `\n`;
@@ -1371,7 +1377,7 @@ function processOrderRekap(sendToTelegram = true) {
   }
   
   if (urgentCount === 0) {
-    teksRekap += `_Tidak ada orderan urgent saat ini._\n\n`;
+    teksRekap += `_Tidak ada orderan urgent atau telat saat ini._\n\n`;
   }
 
   // Pengiriman dan Copy API
