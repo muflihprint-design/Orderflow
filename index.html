@@ -186,10 +186,19 @@
     <!-- PAGE: ANTRIAN -->
     <div id="page-antrian" class="page active p-4 pb-32">
       <div class="mb-5 space-y-4">
-        <div class="relative">
-          <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
-          <input type="text" id="search-input" oninput="applyFilters()" placeholder="Cari pelanggan atau kerjaan..." 
-                 class="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl outline-none shadow-sm text-sm focus:ring-2 focus:ring-blue-500/20">
+        <div class="flex gap-2">
+          <div class="relative flex-1">
+            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+            <input type="text" id="search-input" oninput="applyFilters()" placeholder="Cari pelanggan atau kerjaan..." 
+                   class="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl outline-none shadow-sm text-sm focus:ring-2 focus:ring-blue-500/20">
+          </div>
+          <select id="sort-select" onchange="applyFilters()" class="bg-white border border-gray-200 text-gray-600 rounded-2xl px-2 py-3 outline-none shadow-sm text-[11px] font-bold focus:ring-2 focus:ring-blue-500/20 cursor-pointer">
+            <option value="default">↕️ Urutkan: Default</option>
+            <option value="tgl_masuk_baru">Tgl Masuk (Terbaru)</option>
+            <option value="tgl_masuk_lama">Tgl Masuk (Terlama)</option>
+            <option value="tahap_dekat">Deadline Tahap (Terdekat)</option>
+            <option value="final_dekat">Deadline Final (Terdekat)</option>
+          </select>
         </div>
         
        <div class="filter-grid" id="status-filters">
@@ -1072,13 +1081,17 @@ async function confirmStatus(newStatus) {
       applyFilters();
     }
 
-    function applyFilters() {
+function applyFilters() {
   // Ambil nilai pencarian secara terpisah agar tidak saling bertabrakan
   const searchAntrianInput = document.getElementById('search-input');
   const searchAntrian = searchAntrianInput ? searchAntrianInput.value.toLowerCase() : "";
   
   const searchSelesaiInput = document.getElementById('search-selesai');
   const searchSelesai = searchSelesaiInput ? searchSelesaiInput.value.toLowerCase() : "";
+  
+  // Ambil nilai dari dropdown sortir
+  const sortSelect = document.getElementById('sort-select');
+  const sortType = sortSelect ? sortSelect.value : 'default';
   
   const aktifOrders = allOrders.filter(o => o.status !== 'Selesai');
   const selesaiOrders = allOrders.filter(o => o.status === 'Selesai');
@@ -1102,7 +1115,7 @@ async function confirmStatus(newStatus) {
   }
 
   // Filter untuk daftar Antrian Aktif
-  const filteredAktif = aktifOrders.filter(o => {
+  let filteredAktif = aktifOrders.filter(o => {
     const matchesSearch = `${o.customer} ${o.jobName}`.toLowerCase().includes(searchAntrian);
     const matchesStatus = currentFilter === 'Aktif' ? true : o.status === currentFilter;
     return matchesSearch && matchesStatus;
@@ -1113,7 +1126,36 @@ async function confirmStatus(newStatus) {
     return `${o.customer} ${o.jobName}`.toLowerCase().includes(searchSelesai);
   });
   
-  // Terapkan paginasi (batasan 20) pada data selesai jika belum diset ke 'all'
+  // --- LOGIKA SORTIR BERDASARKAN TANGGAL ---
+  const sortFunction = (a, b) => {
+    if (sortType === 'default') return 0; // Urutan asli dari server
+
+    if (sortType === 'tgl_masuk_baru') {
+      return new Date(b.entryDate || 0) - new Date(a.entryDate || 0);
+    }
+    if (sortType === 'tgl_masuk_lama') {
+      return new Date(a.entryDate || 0) - new Date(b.entryDate || 0);
+    }
+    
+    // Untuk Deadline: Tanggal kosong (null) diubah menjadi nilai Infinity agar selalu berada di bawah
+    if (sortType === 'tahap_dekat') {
+      const dateA = a.statusDeadline ? new Date(a.statusDeadline).getTime() : Infinity;
+      const dateB = b.statusDeadline ? new Date(b.statusDeadline).getTime() : Infinity;
+      return dateA - dateB;
+    }
+    if (sortType === 'final_dekat') {
+      const dateA = a.finalDeadline ? new Date(a.finalDeadline).getTime() : Infinity;
+      const dateB = b.finalDeadline ? new Date(b.finalDeadline).getTime() : Infinity;
+      return dateA - dateB;
+    }
+    return 0;
+  };
+
+  // Terapkan fungsi sortir ke daftar pesanan
+  filteredAktif.sort(sortFunction);
+  filteredSelesai.sort(sortFunction);
+  
+  // Terapkan paginasi (batasan 20) pada data selesai jika belum diset ke 'all' (SETELAH data disortir)
   if (selesaiLimit !== 'all') {
     filteredSelesai = filteredSelesai.slice(0, selesaiLimit);
   }
