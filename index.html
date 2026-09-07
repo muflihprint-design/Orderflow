@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>OrderFlow Pro - Vi Printing</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="apple-touch-icon" href="icon-192x192.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -249,44 +252,87 @@
       </div>
       
       <div>
-        <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">WhatsApp (Opsi)</label>
-        <input type="tel" name="phone" placeholder="0812..."
-          onkeypress="return event.charCode != 44"
+        <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1 flex items-center gap-1">
+          Nomor WhatsApp <span class="text-red-500">*</span>
+        </label>
+        <input type="tel" name="phone" placeholder="0812..." required
                class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
       </div>
     </div>
 
-    <!-- SECTION 2: DETAIL PEKERJAAN -->
-    <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-      <div class="flex items-center gap-2 mb-2 text-orange-500">
-        <i data-lucide="package" class="w-4 h-4"></i>
-        <span class="text-[10px] font-bold uppercase tracking-widest">Detail Pekerjaan</span>
-      </div>
+   <!-- SECTION 2: DETAIL PEKERJAAN -->
+<div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm space-y-4">
+  <div class="flex items-center gap-2 mb-2 text-orange-500">
+    <i data-lucide="package" class="w-4 h-4"></i>
+    <span class="text-[10px] font-bold uppercase tracking-widest">Detail Pekerjaan</span>
+  </div>
 
-      <div>
-        <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Nama Pekerjaan</label>
-        <input type="text" name="jobName" required placeholder="Contoh: Spanduk 3x1m"
-          onkeypress="return event.charCode != 44"
-               class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-      </div>
+  <!-- INPUT BARU: Jenis Pesanan -->
+  <div>
+    <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Jenis Pesanan</label>
+    <select name="orderType" id="orderType" onchange="toggleOrderLogic()" class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none font-bold text-gray-700">
+      <option value="Undangan" selected>💌 Undangan</option>
+      <option value="Lain-lain">📦 Lain-lain</option>
+    </select>
+  </div>
 
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Qty</label>
-          <input type="text" name="quantity" placeholder="10 pcs"
-            onkeypress="return event.charCode != 44"
-                 class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-        </div>
-        <div>
-          <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Prioritas</label>
-          <select name="priority" class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none">
-            <option value="Normal">Normal</option>
-            <option value="Urgent">Urgent</option>
-            <option value="Sangat Urgent">Sangat Urgent</option>
-          </select>
-        </div>
-      </div>
+  <!-- INPUT BARU: Opsi Foto (Hanya muncul jika Undangan) -->
+  <div id="photoOptionContainer" class="bg-blue-50/50 p-4 rounded-2xl border border-blue-100/50">
+    <label class="text-[10px] font-bold text-gray-500 uppercase mb-2 block flex items-center gap-1">
+      Opsi Foto <span class="text-red-500">*</span>
+    </label>
+    <div class="grid grid-cols-3 gap-2">
+      <label class="flex items-center gap-2 text-xs font-bold text-gray-600 bg-white p-3 rounded-xl border border-gray-200 cursor-pointer hover:border-blue-300">
+        <input type="radio" name="photoOption" value="1 Foto" onchange="togglePhotoLogic()" class="accent-blue-600" required> 1 Foto
+      </label>
+      <label class="flex items-center gap-2 text-xs font-bold text-gray-600 bg-white p-3 rounded-xl border border-gray-200 cursor-pointer hover:border-blue-300">
+        <input type="radio" name="photoOption" value="2 Foto" onchange="togglePhotoLogic()" class="accent-blue-600"> 2 Foto
+      </label>
+      <label class="flex items-center gap-2 text-xs font-bold text-gray-600 bg-white p-3 rounded-xl border border-gray-200 cursor-pointer hover:border-blue-300">
+        <input type="radio" name="photoOption" value="Tidak Pakai Foto" onchange="togglePhotoLogic()" class="accent-blue-600"> Tanpa Foto
+      </label>
     </div>
+  </div>
+
+  <!-- INPUT BARU: Posisi Foto (Hanya muncul jika 1 Foto) -->
+  <div id="photoPlacementContainer" class="hidden">
+    <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Posisi Foto Dipasang <span class="text-red-500">*</span></label>
+    <input type="text" name="photoPlacement" id="photoPlacement" placeholder="Contoh: Depan Amplop"
+           class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+  </div>
+
+  <div id="drive-link-container" class="hidden">
+      <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1 flex justify-between items-center">
+        <span>Link Google Drive Foto <span class="text-red-500">*</span></span>
+      </label>
+      <input type="url" name="driveLink" id="driveLink" placeholder="https://drive.google.com/..." class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+      <p id="drive-error" class="text-xs text-red-500 font-bold mt-2 ml-1 hidden">⚠️ Link harus berupa URL Google Drive yang valid (drive.google.com).</p>
+    </div>
+
+  <div>
+    <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Nama Pekerjaan</label>
+    <input type="text" name="jobName" required placeholder="Contoh: Spanduk 3x1m"
+      onkeypress="return event.charCode != 44"
+           class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+  </div>
+
+  <div class="grid grid-cols-2 gap-3">
+    <div>
+      <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Qty</label>
+      <input type="text" name="quantity" required placeholder="10 pcs"
+        onkeypress="return event.charCode != 44"
+             class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+    </div>
+    <div>
+      <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Prioritas</label>
+      <select name="priority" class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none">
+        <option value="Normal">Normal</option>
+        <option value="Urgent">Urgent</option>
+        <option value="Sangat Urgent">Sangat Urgent</option>
+      </select>
+    </div>
+  </div>
+</div>
 
     <!-- SECTION 3: STATUS & DEADLINE -->
     <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm space-y-4">
@@ -338,13 +384,12 @@
   </div>
 
   <div>
-    <label class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1 flex items-center gap-1">
-      <i data-lucide="message-square" class="w-3 h-3"></i> Catatan Tambahan (Manual)
-    </label>
-    <textarea name="description" rows="3" placeholder="Detail finishing atau instruksi manual..."
-      onkeypress="return event.charCode != 44"
-              class="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"></textarea>
-  </div>
+  <label id="labelCatatan" class="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1 flex items-center gap-1">
+    <i data-lucide="message-square" class="w-3 h-3"></i> Catatan Tambahan <span id="starCatatan" class="text-red-500">*</span>
+  </label>
+  <textarea name="description" id="inputCatatan" rows="3" required placeholder="Detail finishing atau instruksi manual..."
+        class="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"></textarea>
+</div>
 </div>
 
     <!-- TOMBOL SIMPAN -->
@@ -425,9 +470,9 @@
            </div>
         </div>
         <div class="mb-6">
-          <p class="text-[10px] text-gray-400 font-bold uppercase mb-2">Catatan Pesanan</p>
-          <div id="det-desc" class="bg-gray-50 p-4 rounded-2xl text-sm text-gray-600 italic border border-gray-100"></div>
-        </div>
+  <p class="text-[10px] text-gray-400 font-bold uppercase mb-2">Catatan Pesanan</p>
+  <div id="det-desc" class="bg-gray-50 p-4 rounded-2xl text-sm text-gray-600 italic border border-gray-100 whitespace-pre-wrap break-words"></div>
+</div>
       </div>
       
     <div class="p-6 bg-white border-t border-gray-100 space-y-3">
@@ -801,6 +846,86 @@ async function loadOrders() {
   }
 }
     
+// FUNGSI BARU: Mengatur tampilan berdasarkan Jenis Pesanan
+function toggleOrderLogic() {
+  const orderType = document.getElementById('orderType').value;
+  const photoContainer = document.getElementById('photoOptionContainer');
+  const inputCatatan = document.getElementById('inputCatatan');
+  const starCatatan = document.getElementById('starCatatan');
+  const photoRadios = document.querySelectorAll('input[name="photoOption"]');
+
+  if (orderType === 'Undangan') {
+    photoContainer.classList.remove('hidden');
+    inputCatatan.required = true;
+    starCatatan.classList.remove('hidden');
+    photoRadios.forEach(r => r.required = true);
+    
+    // Teks placeholder khusus untuk pesanan Undangan
+    inputCatatan.placeholder = "Masukkan konsep undangan dan detail lainnya...";
+  } else {
+    photoContainer.classList.add('hidden');
+    inputCatatan.required = false;
+    starCatatan.classList.add('hidden');
+    photoRadios.forEach(r => { 
+      r.required = false; 
+      r.checked = false; 
+    });
+    document.getElementById('photoPlacementContainer').classList.add('hidden');
+    document.getElementById('photoPlacement').required = false;
+    
+    // Teks placeholder kembali ke setelan umum untuk pesanan Lain-lain
+    inputCatatan.placeholder = "Detail finishing atau instruksi manual...";
+  }
+}
+
+// FUNGSI BARU: Mengatur input tempat foto dan link drive beserta placeholder dinamis
+function togglePhotoLogic() {
+  const selectedPhoto = document.querySelector('input[name="photoOption"]:checked');
+  const placementContainer = document.getElementById('photoPlacementContainer');
+  const placementInput = document.getElementById('photoPlacement');
+  const driveContainer = document.getElementById('drive-link-container');
+  const driveInput = document.getElementById('driveLink');
+  const driveError = document.getElementById('drive-error');
+
+  if (selectedPhoto) {
+    // Logika Tempat Foto (Hanya 1 Foto)
+    if (selectedPhoto.value === '1 Foto') {
+      placementContainer.classList.remove('hidden');
+      placementInput.required = true;
+    } else {
+      placementContainer.classList.add('hidden');
+      placementInput.required = false;
+      placementInput.value = '';
+    }
+
+    // Logika Link Drive (1 Foto & 2 Foto) beserta Placeholder Dinamis
+    if (selectedPhoto.value === '1 Foto' || selectedPhoto.value === '2 Foto') {
+      driveContainer.classList.remove('hidden');
+      driveInput.required = true;
+      
+      // Ubah teks placeholder sesuai pilihan
+      if (selectedPhoto.value === '1 Foto') {
+        driveInput.placeholder = "Masukkan link file foto dari Google Drive...";
+      } else if (selectedPhoto.value === '2 Foto') {
+        driveInput.placeholder = "Masukkan link FOLDER Google Drive yang berisi 2 foto...";
+      }
+      
+    } else {
+      driveContainer.classList.add('hidden');
+      driveInput.required = false;
+      driveInput.value = '';
+      driveError.classList.add('hidden');
+    }
+  }
+}
+
+// Jalankan saat halaman pertama dimuat agar default "Undangan" tersetting
+document.addEventListener('DOMContentLoaded', () => {
+  checkForUpdates();
+  toggleOrderLogic();
+});
+
+// PEMBARUAN FUNGSI: handleFormSubmit
 async function handleFormSubmit(e) {
   e.preventDefault();
   
@@ -813,20 +938,64 @@ async function handleFormSubmit(e) {
 
   const formData = new FormData(e.target);
   
-  /**
-   * Mengambil data dari form termasuk field 'equipment'
-   * Data ini akan dikirim ke Apps Script untuk mengisi Kolom L ("Equipment")
-   */
+  let formattedPhone = formData.get('phone') || '';
+  formattedPhone = formattedPhone.trim();
+  if (formattedPhone.startsWith('0')) formattedPhone = '62' + formattedPhone.substring(1);
+  else if (formattedPhone.startsWith('+62')) formattedPhone = formattedPhone.substring(1);
+
+  // --- LOGIKA PENGGABUNGAN CATATAN ---
+  // --- LOGIKA PENGGABUNGAN CATATAN ---
+  const orderType = formData.get('orderType');
+  let finalDescription = formData.get('description') || '';
+
+  if (orderType === 'Undangan') {
+      const photoOpt = formData.get('photoOption'); // Nilainya: '1 Foto', '2 Foto', 'Tidak Pakai Foto'
+      
+      // VALIDASI LINK GOOGLE DRIVE
+      if (photoOpt === '1 Foto' || photoOpt === '2 Foto') {
+          const driveLink = formData.get('driveLink') || '';
+          const driveError = document.getElementById('drive-error');
+          
+          // Tolak jika teks tidak mengandung "drive.google.com"
+          if (!driveLink.toLowerCase().includes('drive.google.com')) {
+              driveError.classList.remove('hidden');
+              showToast("⚠️ Link foto harus dari Google Drive!");
+              
+              btn.disabled = false;
+              btn.classList.remove('opacity-70', 'cursor-not-allowed');
+              btn.innerHTML = originalContent;
+              if (window.lucide) lucide.createIcons();
+              
+              return; 
+          } else {
+              driveError.classList.add('hidden'); 
+          }
+      }
+
+      // Rangkum deskripsi jika lolos validasi
+      let photoStr = photoOpt; 
+      if (photoOpt === '1 Foto') {
+          // Diperbaiki: memanggil 'photoPlacement' sesuai nama input di HTML
+          photoStr += ` (Letak: ${formData.get('photoPlacement')})`; 
+      }
+      if (photoOpt === '1 Foto' || photoOpt === '2 Foto') {
+          photoStr += `\n[Link Foto: ${formData.get('driveLink')}]`;
+      }
+      finalDescription = `[Jenis: Undangan | ${photoStr}]\n` + finalDescription;
+  } else {
+      finalDescription = `[Jenis: Lain-lain]\n` + (finalDescription ? finalDescription : '-');
+  }
+
   const orderData = {
     action: 'addNewOrder',
     customer: formData.get('customer'),
-    phone: formData.get('phone'),
+    phone: formattedPhone, 
     jobName: formData.get('jobName'),
     quantity: formData.get('quantity'),
     priority: formData.get('priority'),
     status: formData.get('status') || 'Desain',
-    equipment: formData.get('equipment'), // Menambahkan data Kelengkapan Bahan
-    description: formData.get('description'),
+    equipment: formData.get('equipment'), 
+    description: finalDescription, // Mengirim data yang telah digabung
     finalDeadline: formData.get('finalDeadline'),
     statusDeadline: formData.get('statusDeadline')
   };
@@ -834,22 +1003,16 @@ async function handleFormSubmit(e) {
   try {
     const queryParams = new URLSearchParams(orderData).toString();
     const response = await fetch(`${WEB_APP_URL}?${queryParams}`);
-    
     if (!response.ok) throw new Error('Network response was not ok');
     
     const result = await response.json();
 
     if (result.success) {
       showToast("✓ Pesanan Tersimpan!");
-      
       e.target.reset();
-      
-      // Memuat ulang data agar nomor urut ID terbaru muncul di list
+      toggleOrderLogic(); // Reset form ke state default
       await loadOrders();
-      
-      // Jalankan rekap otomatis ke Telegram/Clipboard
-   processOrderRekap();
-
+      processOrderRekap();
       switchTab('antrian');
     } else {
       showToast("❌ Gagal: " + (result.error || "Gagal simpan"));
@@ -864,7 +1027,7 @@ async function handleFormSubmit(e) {
     if (window.lucide) lucide.createIcons();
   }
 }
-    
+
 function openDetail(id) {
   const order = allOrders.find(o => o.id === id);
   if (!order) return;
@@ -952,7 +1115,45 @@ function openDetail(id) {
       `}
   `;
 
-  document.getElementById('det-desc').textContent = order.description || 'Tidak ada catatan.';
+  const descContainer = document.getElementById('det-desc');
+  // Simpan class desain bawaan kotak teks
+ const defaultDescClass = "bg-gray-50 p-4 rounded-2xl text-sm text-gray-600 italic border border-gray-100 whitespace-pre-wrap break-words";
+
+  if (order.description && order.description.trim() !== '') {
+    descContainer.className = defaultDescClass;
+    
+    // 1. Amankan teks dari karakter HTML (Mencegah XSS)
+    let escapedText = order.description
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    // 2. Gunakan Regex untuk mendeteksi link (Mengabaikan tanda kurung siku tutup ']')
+    const urlRegex = /(https?:\/\/[^\s\]]+)/g;
+    
+    // 3. Ubah teks link menjadi elemen anchor (<a>) yang bisa diklik
+    const formattedHTML = escapedText.replace(urlRegex, function(url) {
+      return `<a href="${url}" target="_blank" class="text-blue-600 underline font-bold hover:text-blue-800 transition-colors break-all">${url}</a>`;
+    });
+
+    // 4. Masukkan ke dalam container menggunakan innerHTML, bukan textContent
+    descContainer.innerHTML = formattedHTML;
+  } else {
+    // Hilangkan kotak bawaan agar tidak ada jarak kosong berlebih
+    descContainer.className = ""; 
+    descContainer.innerHTML = `
+      <div class="flex flex-col gap-2.5">
+        <textarea id="new-note-input" rows="2" placeholder="Belum ada catatan. Ketik di sini..." 
+          class="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 text-sm text-gray-700 transition-all resize-none"></textarea>
+        
+        <button onclick="saveNewNote('${order.id}', event)" 
+          class="w-full py-3 bg-blue-50 text-blue-700 border border-blue-100 rounded-2xl text-[11px] font-black tracking-wide active:scale-95 hover:bg-blue-100 transition-all flex justify-center items-center gap-1.5">
+          <i data-lucide="save" class="w-4 h-4 shrink-0"></i> 
+          <span class="leading-none mt-[1px]">SIMPAN CATATAN</span>
+        </button>
+      </div>
+    `;
+  }
 
   const badgesEl = document.getElementById('det-badges');
   badgesEl.innerHTML = `
@@ -968,6 +1169,60 @@ function openDetail(id) {
     modal.querySelector('.modal-content').classList.replace('opacity-0', 'opacity-100');
   }, 10);
   lucide.createIcons();
+}
+
+async function saveNewNote(orderId, event) {
+  const noteInput = document.getElementById('new-note-input');
+  const newNote = noteInput.value.trim();
+  
+  if (!newNote) {
+    showToast("⚠️ Catatan tidak boleh kosong");
+    return;
+  }
+
+  // Animasi Loading Tombol
+  const btn = event.currentTarget;
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = '<i class="animate-spin w-3.5 h-3.5" data-lucide="loader-2"></i> Menyimpan...';
+  btn.disabled = true;
+  btn.classList.add('opacity-70', 'cursor-not-allowed');
+  if (window.lucide) lucide.createIcons();
+
+  // 1. Update UI Lokal agar instan (Optimistic Update)
+  const orderIdx = allOrders.findIndex(o => o.id === orderId);
+  if (orderIdx !== -1) {
+    allOrders[orderIdx].description = newNote;
+  }
+
+  try {
+    // 2. Kirim ke Google Apps Script
+    const url = `${WEB_APP_URL}?action=updateDescription&id=${encodeURIComponent(orderId)}&description=${encodeURIComponent(newNote)}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    
+    if (result.success) {
+      showToast("✓ Catatan berhasil ditambahkan!");
+      
+      // 3. Ubah form input kembali menjadi teks
+      const descContainer = document.getElementById('det-desc');
+      descContainer.textContent = newNote;
+      descContainer.classList.add('whitespace-pre-wrap');
+    } else {
+      showToast("❌ Gagal: " + (result.message || "Gagal simpan"));
+      restoreButton();
+    }
+  } catch (err) {
+    console.error(err);
+    showToast("❌ Error koneksi ke server");
+    restoreButton();
+  }
+
+  function restoreButton() {
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
+    btn.classList.remove('opacity-70', 'cursor-not-allowed');
+    if (window.lucide) lucide.createIcons();
+  }
 }
 
     
@@ -1437,7 +1692,7 @@ function processOrderRekap(sendToTelegram = true) {
 
     // Fungsi untuk memuat data di awal (background process)
 async function preloadSheetData() {
-  const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvAQXltAVp8lnrXXVVPJr1hYEi8cAJrqz182qT23eaiI8t-MoBrEtE7bAAJqKEyKKTig4hpA9DNuQB/pub?gid=2057149863&single=true&output=csv";
+  const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvAQXltAVp8lnrXXVVPJr1hYEi8cAJrqz182qT23eaiI8t-MoBrEtE7bAAJqKEyKKTig4hpA9DNuQB/pub?gid=629627365&single=true&output=csv";
   
   try {
     const response = await fetch(sheetUrl);
@@ -1515,6 +1770,18 @@ function setPagination(limit) {
   loadOrders();         // Memuat data antrian utama (Apps Script)
   preloadSheetData();   // Memuat data transaksi (Spreadsheet) di latar belakang
 };
+
+if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(registration => {
+            console.log('ServiceWorker registered dengan scope:', registration.scope);
+          })
+          .catch(err => {
+            console.log('ServiceWorker gagal didaftarkan:', err);
+          });
+      });
+    }
   </script>
   <div id="toast"></div>
 </body>
