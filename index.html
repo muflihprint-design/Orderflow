@@ -801,16 +801,21 @@ function showLoadingState(targetId) {
   container.innerHTML = skeletonHTML;
 }
     
-    function switchTab(tabId) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      
-      document.getElementById('page-' + tabId).classList.add('active');
-      document.getElementById('nav-' + tabId).classList.add('active');
-      
-      if (tabId === 'antrian' || tabId === 'selesai') applyFilters();
-    }
+function switchTab(tabId, isHistoryPop = false) {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  
+  document.getElementById('page-' + tabId).classList.add('active');
+  document.getElementById('nav-' + tabId).classList.add('active');
+  
+  if (tabId === 'antrian' || tabId === 'selesai') applyFilters();
+
+  // Tambahkan state ke history browser hanya jika navigasi bukan berasal dari tombol back HP
+  if (!isHistoryPop) {
+    window.history.pushState({ tab: tabId }, '', '#' + tabId);
+  }
+}
 
     function isGoogleEnv() {
       return typeof google !== 'undefined' && google.script && google.script.run;
@@ -2086,6 +2091,44 @@ if (!isStandalone && isMobileDevice) {
 
 window.addEventListener('appinstalled', () => {
     showMandatoryScreen('installing');
+});
+
+// 1. Inisialisasi state awal saat aplikasi pertama kali dibuka
+window.addEventListener('DOMContentLoaded', () => {
+  window.history.replaceState({ tab: 'antrian' }, '', '#antrian');
+});
+
+// 2. Deteksi saat tombol back pada perangkat / HP ditekan
+window.addEventListener('popstate', function(event) {
+  
+  // Cek apakah ada Modal (Pop-up) yang sedang terbuka
+  const openModals = [
+    document.getElementById('detail-modal'),
+    document.getElementById('import-modal'),
+    document.getElementById('status-modal'),
+    document.getElementById('quick-note-modal')
+  ].filter(modal => modal && !modal.classList.contains('hidden'));
+
+  // Jika ada modal yang terbuka, prioritaskan untuk menutup modal
+  if (openModals.length > 0) {
+    if (typeof closeDetail === 'function') closeDetail();
+    if (typeof closeImportModal === 'function') closeImportModal();
+    if (typeof closeStatusModal === 'function') closeStatusModal();
+    if (typeof closeQuickNoteModal === 'function') closeQuickNoteModal();
+    
+    // Kembalikan URL history ke tab yang sedang aktif saat ini agar antrian history tidak berantakan
+    const currentTab = document.querySelector('.nav-item.active').id.replace('nav-', '');
+    window.history.pushState({ tab: currentTab }, '', '#' + currentTab);
+    return; // Hentikan fungsi di sini agar tab tidak berubah
+  }
+
+  // Jika tidak ada modal yang terbuka, jalankan navigasi kembali ke menu (tab) sebelumnya
+  if (event.state && event.state.tab) {
+    switchTab(event.state.tab, true); // true menandakan navigasi ini dari tombol back
+  } else {
+    // Jika tidak ada data history, default kembalikan ke menu utama (antrian)
+    switchTab('antrian', true); 
+  }
 });
     
   </script>
