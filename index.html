@@ -1032,8 +1032,19 @@ async function handleFormSubmit(e) {
     
     const result = await response.json();
 
-    if (result.success) {
+   if (result.success) {
       showToast("✓ Pesanan Tersimpan!");
+      
+      // --- TAMBAHAN KODE TELEGRAM PESANAN BARU ---
+      const notifMsg = `🆕 *PESANAN BARU MASUK!*\n` +
+                       `👤 *Pelanggan:* ${orderData.customer}\n` +
+                       `🏷️ *Kerjaan:* ${orderData.jobName} (Qty: ${orderData.quantity})\n` +
+                       `🚨 *Prioritas:* ${orderData.priority}\n` +
+                       `📅 *Deadline:* ${formatFullDate(orderData.finalDeadline)}\n` +
+                       `📝 *Catatan:*\n${orderData.description}`;
+      sendTelegramNotif(notifMsg);
+      // ------------------------------------------
+
       e.target.reset();
       toggleOrderLogic(); // Reset form ke state default
       await loadOrders();
@@ -1639,6 +1650,17 @@ async function saveQuickNote() {
     
     if (result.success) {
       showToast("✓ Revisi catatan berhasil ditambahkan!");
+      
+      // --- TAMBAHAN KODE TELEGRAM REVISI ---
+      const order = allOrders[orderIdx];
+      const notifMsg = `⚠️ *REVISI / UPDATE CATATAN!*\n` +
+                       `🆔 *ID Order:* ${order.id}\n` +
+                       `👤 *Pelanggan:* ${order.customer}\n` +
+                       `🏷️ *Kerjaan:* ${order.jobName || order.jobname}\n` +
+                       `💬 *Revisi Baru:*\n${newNote}`;
+      sendTelegramNotif(notifMsg);
+      // -------------------------------------
+
       closeQuickNoteModal();
     } else {
       showToast("❌ Gagal: " + (result.message || "Terjadi kesalahan"));
@@ -2130,6 +2152,17 @@ window.addEventListener('popstate', function(event) {
     switchTab('antrian', true); 
   }
 });
+
+// Fungsi baru untuk mengirim notif Telegram Pesanan Baru & Revisi
+function sendTelegramNotif(message) {
+  // Token bot diambil dari script Anda yang sudah ada
+  const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U'; 
+  const chatId = '-5508241280'; // ID Grup Notifikasi sesuai permintaan Anda
+  
+  const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown`;
+  
+  fetch(url).catch(err => console.error("Gagal mengirim notif Telegram:", err));
+}
     
   </script>
   <div id="toast"></div>
