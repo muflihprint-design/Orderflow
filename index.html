@@ -584,6 +584,7 @@
 
 let rawSheetData = [];
 let selesaiLimit = 20;
+let localUpdatedOrders = new Set();
 
 // Versi lokal aplikasi saat ini
 const APP_VERSION = "1.0.2"; 
@@ -595,7 +596,6 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 // UBAH NAMA VARIABEL MENJADI supabaseClient
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// 2. Fungsi untuk Mendengarkan Perubahan di Tabel Supabase (Realtime)
 function setupSupabaseRealtime() {
   supabaseClient
     .channel('tabel-notifikasi-channel')
@@ -603,6 +603,16 @@ function setupSupabaseRealtime() {
       'postgres_changes',
       { event: '*', schema: 'public', table: 'log_notifikasi_telegram' },
       (payload) => {
+        const orderIdDariDatabase = payload.new.nomor_pesanan;
+
+        // Cek apakah ID pesanan ini baru saja kita ubah sendiri
+        if (localUpdatedOrders.has(orderIdDariDatabase)) {
+          console.log('Mengabaikan muat ulang untuk pesanan:', orderIdDariDatabase);
+          // Hapus dari daftar setelah diabaikan agar bersih kembali
+          localUpdatedOrders.delete(orderIdDariDatabase);
+          return; // Hentikan fungsi di sini
+        }
+        
         console.log('Perubahan terdeteksi:', payload);
         if (typeof showToast === 'function') {
           showToast("🔄 Data sinkronisasi baru diterima...");
@@ -1409,6 +1419,9 @@ async function confirmStatus(newStatus) {
     if (result.success) {
       showToast("✓ Berhasil diperbarui!");
       
+      // CATAT ID PESANAN INI SEBELUM KIRIM KE SUPABASE
+      localUpdatedOrders.add(selectedOrderId);
+      
       // PICU SUPABASE REALTIME SAAT STATUS BERUBAH
       supabaseClient.from('log_notifikasi_telegram').insert([{
          keterangan_event: "UPDATE STATUS",
@@ -1417,7 +1430,6 @@ async function confirmStatus(newStatus) {
          isi_pesan: `Status pesanan diubah ke ${newStatus}`
       }]).then(() => {
          processOrderRekap(); 
-         loadOrders(); 
       });
       
     } else {
@@ -2234,7 +2246,12 @@ function sendTelegramNotif(message, keterangan = "UMUM", nomorPesanan = "-", nam
   
   fetch(url)
     .then(() => {
-       // JIKA TELEGRAM BERHASIL, LANGSUNG CATAT KE SUPABASE AGAR REALTIME SEMUA HP TERPICU
+       // CATAT ID PESANAN INI SEBELUM KIRIM KE SUPABASE
+       if (nomorPesanan && nomorPesanan !== "-") {
+         localUpdatedOrders.add(nomorPesanan);
+       }
+       
+       // JIKA TELEGRAM BERHASIL, LANGSUNG CATAT KE SUPABASE
        return supabaseClient.from('log_notifikasi_telegram').insert([{
            keterangan_event: keterangan,
            nomor_pesanan: nomorPesanan,
