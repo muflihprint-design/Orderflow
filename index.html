@@ -609,8 +609,15 @@ function setupSupabaseRealtime() {
       'postgres_changes',
       { event: '*', schema: 'public', table: 'log_notifikasi_telegram' },
       (payload) => {
+        // --- 1. FILTER TRANSAKSI KASIR ---
+        // Jika notifikasi berasal dari aplikasi Kasir, abaikan dan jangan lakukan apa-apa
+        if (payload.new && payload.new.keterangan_event === "TRANSAKSI KASIR") {
+          return; 
+        }
+
         const orderIdDariDatabase = payload.new.nomor_pesanan;
 
+        // --- 2. FILTER PERANGKAT SENDIRI ---
         // Cek apakah ID pesanan ini baru saja kita ubah sendiri
         if (localUpdatedOrders.has(orderIdDariDatabase)) {
           console.log('Mengabaikan muat ulang untuk pesanan:', orderIdDariDatabase);
@@ -619,6 +626,7 @@ function setupSupabaseRealtime() {
           return; // Hentikan fungsi di sini
         }
         
+        // --- 3. EKSEKUSI PEMBARUAN ---
         console.log('Perubahan terdeteksi:', payload);
         if (typeof showToast === 'function') {
           showToast("🔄 Data sinkronisasi baru diterima...");
