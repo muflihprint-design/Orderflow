@@ -565,10 +565,16 @@
           <i data-lucide="message-square" class="w-3 h-3"></i> Tambahkan / Edit Catatan
         </label>
         <textarea id="quick-note-input" rows="5" class="w-full p-4 bg-gray-50 border border-blue-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:bg-white text-sm transition-all" placeholder="Tulis revisi atau catatan tambahan di sini..."></textarea>
-        
-        <button id="quick-note-save-btn" onclick="saveQuickNote()" class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black tracking-wide active:scale-95 transition-all flex justify-center items-center gap-2 shadow-lg shadow-blue-200">
-          <i data-lucide="save" class="w-5 h-5 shrink-0"></i> SIMPAN REVISI
-        </button>
+        <div class="flex flex-col gap-3">
+          <button id="quick-note-save-btn" onclick="saveQuickNote()" class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black tracking-wide active:scale-95 transition-all flex justify-center items-center gap-2 shadow-lg shadow-blue-200">
+            <i data-lucide="save" class="w-5 h-5 shrink-0"></i> SIMPAN REVISI
+          </button>
+          
+          <!-- TOMBOL BARU: TANDAI SELESAI -->
+          <button id="quick-note-resolve-btn" onclick="resolveRevisi()" class="hidden w-full py-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-2xl font-black tracking-wide active:scale-95 transition-all flex justify-center items-center gap-2">
+            <i data-lucide="check-circle-2" class="w-5 h-5 shrink-0"></i> TANDAI SEMUA REVISI SELESAI
+          </button>
+        </div>        
       </div>
     </div>
   </div>
@@ -1550,17 +1556,28 @@ function renderList(targetId, orders, showDeadline) {
     const currentIndex = stages.indexOf(order.status);
     
     // --- LOGIKA PENGECEKAN KELENGKAPAN ---
-    const rawEquip = order.equipment || ""; // Kolom L
-    const checkedEquip = (order.checkedEquipment || "").toLowerCase(); // Kolom M
+    const rawEquip = order.equipment || ""; 
+    const checkedEquip = (order.checkedEquipment || "").toLowerCase(); 
     let isComplete = true;
 
     if (rawEquip.includes(':')) {
       const itemsPart = rawEquip.split(':')[1];
       const itemsArray = itemsPart.split(',').map(i => i.trim().toLowerCase());
-      
-      // Jika ada satu saja item dari Kolom L yang tidak ada di Kolom M, maka Belum Lengkap
       isComplete = itemsArray.every(item => checkedEquip.includes(item));
     }
+
+    // --- LOGIKA NOTIFIKASI REVISI BARU ---
+    // Menghitung berapa kali kata "[Revisi -" muncul di catatan
+    const activeRevisiCount = (order.description || "").match(/\[Revisi -/g)?.length || 0;
+    
+    // Jika ada revisi, tombol jadi merah. Jika tidak, tetap biru.
+    const revisiBtnClass = activeRevisiCount > 0 ? 'bg-red-50 text-red-600 border-red-200' : 'bg-blue-50 text-blue-600 border-blue-100';
+    
+    // Badge angka notifikasi merah berkedip
+    const revisiBadge = activeRevisiCount > 0 
+      ? `<span class="bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse shadow-sm ml-1">${activeRevisiCount}</span>` 
+      : '';
+    // -------------------------------------
 
     const progressHTML = `
       <div class="progress-container mb-6">
@@ -1634,9 +1651,9 @@ function renderList(targetId, orders, showDeadline) {
                <i data-lucide="check-circle" class="w-3 h-3"></i> Status
              </button>
 
-             <!-- TOMBOL REVISI CATATAN (DIPERBAIKI) -->
-             <button onclick="event.preventDefault(); event.stopPropagation(); openQuickEditNote('${order.id}', event);" class="flex items-center gap-1 text-[10px] bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full border border-blue-100 font-bold active:scale-95 hover:bg-blue-100 transition-all relative z-20">
-               <i data-lucide="edit-3" class="w-3 h-3"></i> Revisi
+             <!-- TOMBOL REVISI CATATAN (DIPERBAIKI DENGAN NOTIFIKASI) -->
+             <button onclick="event.preventDefault(); event.stopPropagation(); openQuickEditNote('${order.id}', event);" class="flex items-center text-[10px] ${revisiBtnClass} px-3 py-1.5 rounded-full border font-bold active:scale-95 transition-all relative z-20">
+               <i data-lucide="edit-3" class="w-3 h-3 mr-1"></i> Revisi ${revisiBadge}
              </button>
              
            </div>
@@ -1668,13 +1685,20 @@ function openQuickEditNote(orderId, event) {
   quickNoteOrderId = orderId;
   const modal = document.getElementById('quick-note-modal');
   const input = document.getElementById('quick-note-input');
+  const resolveBtn = document.getElementById('quick-note-resolve-btn');
+  
+  // Cek apakah ada revisi aktif untuk menampilkan tombol Selesai
+  const activeRevisiCount = (order.description || "").match(/\[Revisi -/g)?.length || 0;
+  if (activeRevisiCount > 0) {
+    resolveBtn.classList.remove('hidden');
+  } else {
+    resolveBtn.classList.add('hidden');
+  }
   
   // KOSONGKAN input agar bisa langsung mengetik catatan tambahan baru
   input.value = "";
   
   modal.classList.remove('hidden');
-  
-  // Otomatis fokus ke input
   setTimeout(() => input.focus(), 100);
   
   if (window.lucide) lucide.createIcons();
@@ -1744,6 +1768,7 @@ async function saveQuickNote() {
       // -------------------------------------
 
       closeQuickNoteModal();
+      applyFilters();
     } else {
       showToast("❌ Gagal: " + (result.message || "Terjadi kesalahan"));
     }
@@ -1765,6 +1790,53 @@ function closeQuickNoteModal() {
   quickNoteOrderId = null;
 }
 
+async function resolveRevisi() {
+  if (!quickNoteOrderId) return;
+  
+  // 1. Temukan order yang sedang direvisi
+  const orderIdx = allOrders.findIndex(o => o.id === quickNoteOrderId);
+  if (orderIdx === -1) return;
+
+  const currentDesc = allOrders[orderIdx].description || "";
+  
+  // 2. Ganti semua string awal revisi agar dianggap "Selesai"
+  // Ini otomatis akan menghilangkan badge merah
+  const updatedDesc = currentDesc.replace(/\[Revisi -/g, "[✓ Selesai -");
+  
+  if (currentDesc === updatedDesc) return;
+
+  const btn = document.getElementById('quick-note-resolve-btn');
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = '<i class="animate-spin w-4 h-4" data-lucide="loader-2"></i> MEMPROSES...';
+  btn.disabled = true;
+  if (window.lucide) lucide.createIcons();
+
+  // 3. Update Data Lokal untuk Optimistic UI
+  allOrders[orderIdx].description = updatedDesc;
+
+  try {
+    // 4. Kirim ke API Google Apps Script (menggunakan endpoint updateDescription yang sama)
+    const url = `${WEB_APP_URL}?action=updateDescription&id=${encodeURIComponent(quickNoteOrderId)}&description=${encodeURIComponent(updatedDesc)}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    
+    if (result.success) {
+      showToast("✓ Semua revisi ditandai selesai!");
+      closeQuickNoteModal();
+      applyFilters(); // Render ulang agar badge notifikasi menghilang
+    } else {
+      showToast("❌ Gagal: " + (result.message || "Terjadi kesalahan"));
+    }
+  } catch (err) {
+    console.error(err);
+    showToast("❌ Error koneksi ke server");
+  } finally {
+    // Kembalikan status tombol
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
+    if (window.lucide) lucide.createIcons();
+  }
+}
 
 function processOrderRekap(sendToTelegram = true) {
   if (allOrders.length === 0) {
