@@ -1802,7 +1802,6 @@ async function resolveRevisi() {
   const currentDesc = allOrders[orderIdx].description || "";
   
   // 2. Ganti semua string awal revisi agar dianggap "Selesai"
-  // Ini otomatis akan menghilangkan badge merah
   const updatedDesc = currentDesc.replace(/\[Revisi -/g, "[✓ Selesai -");
   
   if (currentDesc === updatedDesc) return;
@@ -1817,15 +1816,35 @@ async function resolveRevisi() {
   allOrders[orderIdx].description = updatedDesc;
 
   try {
-    // 4. Kirim ke API Google Apps Script (menggunakan endpoint updateDescription yang sama)
+    // 4. Kirim ke API Google Apps Script
     const url = `${WEB_APP_URL}?action=updateDescription&id=${encodeURIComponent(quickNoteOrderId)}&description=${encodeURIComponent(updatedDesc)}`;
     const response = await fetch(url);
     const result = await response.json();
     
     if (result.success) {
       showToast("✓ Semua revisi ditandai selesai!");
+      
+      // --- LOGIKA BARU: SINKRONISASI SUPABASE ---
+      const order = allOrders[orderIdx];
+      
+      // Tambahkan ke Set lokal agar perangkat Anda tidak perlu memuat ulang datanya sendiri secara ganda
+      localUpdatedOrders.add(quickNoteOrderId);
+      
+      // Kirim trigger log ke Supabase agar perangkat tim lain langsung me-refresh data (loadOrders)
+      supabaseClient.from('log_notifikasi_telegram').insert([{
+         keterangan_event: "REVISI SELESAI",
+         nomor_pesanan: quickNoteOrderId,
+         nama_pekerjaan: order.jobName || order.jobname || "-",
+         isi_pesan: `Revisi pesanan ini telah ditandai selesai.`
+      }]).then(() => {
+         console.log("Trigger sinkronisasi revisi selesai terkirim ke Supabase.");
+      }).catch(err => {
+         console.error("Gagal sinkronisasi Supabase:", err);
+      });
+      // ------------------------------------------
+
       closeQuickNoteModal();
-      applyFilters(); // Render ulang agar badge notifikasi menghilang
+      applyFilters(); // Render ulang UI Anda agar badge notifikasi menghilang seketika
     } else {
       showToast("❌ Gagal: " + (result.message || "Terjadi kesalahan"));
     }
