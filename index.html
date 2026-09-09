@@ -7,6 +7,8 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#2563eb">
   <link rel="apple-touch-icon" href="icon-192x192.png">
+  <!-- Tambahkan CDN Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -586,6 +588,31 @@ let selesaiLimit = 20;
 // Versi lokal aplikasi saat ini
 const APP_VERSION = "1.0.2"; 
 
+// 1. Inisialisasi Koneksi ke Supabase
+const SUPABASE_URL = "https://zqxeoveanevsvynptckm.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxeGVvdmVhbmV2c3Z5bnB0Y2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNzUzODEsImV4cCI6MjA4OTg1MTM4MX0.eeIaytpW1wtWPJc2FbhufkDkhONUt9yypTZU4dTVmsM";
+
+// UBAH NAMA VARIABEL MENJADI supabaseClient
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// 2. Fungsi untuk Mendengarkan Perubahan di Tabel Supabase (Realtime)
+function setupSupabaseRealtime() {
+  supabaseClient
+    .channel('tabel-notifikasi-channel')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'log_notifikasi_telegram' },
+      (payload) => {
+        console.log('Perubahan terdeteksi:', payload);
+        if (typeof showToast === 'function') {
+          showToast("🔄 Data sinkronisasi baru diterima...");
+        }
+        loadOrders(); 
+      }
+    )
+    .subscribe();
+}
+
 async function checkForUpdates() {
   try {
     // KUNCINYA DI SINI: Kita gabungkan WEB_APP_URL dengan parameter khusus
@@ -1075,7 +1102,7 @@ async function handleFormSubmit(e) {
                        `🚨 *Prioritas:* ${orderData.priority}\n` +
                        `📅 *Deadline:* ${formatFullDate(orderData.finalDeadline)}\n` +
                        `📝 *Catatan:*\n${orderData.description}`;
-      sendTelegramNotif(notifMsg);
+      sendTelegramNotif(notifMsg, "PESANAN BARU", "ID BARU", orderData.jobName);
       // ------------------------------------------
 
       e.target.reset();
@@ -1382,12 +1409,17 @@ async function confirmStatus(newStatus) {
     if (result.success) {
       showToast("✓ Berhasil diperbarui!");
       
-      // 3. KIRIM REKAP KE TELEGRAM
-      // Menggunakan fungsi gabungan yang baru saja diperbarui
-      // Default parameter adalah true (Kirim ke Telegram + Salin Clipboard)
-      processOrderRekap();
-            
-      loadOrders(); // Refresh data untuk memastikan sinkronisasi
+      // PICU SUPABASE REALTIME SAAT STATUS BERUBAH
+      supabaseClient.from('log_notifikasi_telegram').insert([{
+         keterangan_event: "UPDATE STATUS",
+         nomor_pesanan: selectedOrderId,
+         nama_pekerjaan: order.jobName || order.jobname || "-",
+         isi_pesan: `Status pesanan diubah ke ${newStatus}`
+      }]).then(() => {
+         processOrderRekap(); 
+         loadOrders(); 
+      });
+      
     } else {
       showToast("❌ Gagal: " + (result.message || "Gagal simpan"));
     }
@@ -1696,7 +1728,7 @@ async function saveQuickNote() {
                        `👤 *Pelanggan:* ${order.customer}\n` +
                        `🏷️ *Kerjaan:* ${order.jobName || order.jobname}\n` +
                        `💬 *Revisi Baru:*\n${newNote}`;
-      sendTelegramNotif(notifMsg);
+      sendTelegramNotif(notifMsg, "REVISI CATATAN", order.id, order.jobName || order.jobname);
       // -------------------------------------
 
       closeQuickNoteModal();
@@ -1960,9 +1992,12 @@ function setPagination(limit) {
   applyFilters();
 }
     
-   window.onload = () => {
+  window.onload = () => {
   loadOrders();         // Memuat data antrian utama (Apps Script)
   preloadSheetData();   // Memuat data transaksi (Spreadsheet) di latar belakang
+  
+  // Menjalankan pemantauan Supabase Realtime
+  setupSupabaseRealtime();
 };
 
 if ('serviceWorker' in navigator) {
@@ -2191,17 +2226,25 @@ window.addEventListener('popstate', function(event) {
   }
 });
 
-// Fungsi baru untuk mengirim notif Telegram Pesanan Baru & Revisi
-function sendTelegramNotif(message) {
-  // Token bot diambil dari script Anda yang sudah ada
+// Tambahkan parameter baru untuk menangkap data log
+function sendTelegramNotif(message, keterangan = "UMUM", nomorPesanan = "-", namaKerjaan = "-") {
   const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U'; 
-  const chatId = '-5508241280'; // ID Grup Notifikasi sesuai permintaan Anda
-  
+  const chatId = '-5508241280'; 
   const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown`;
   
-  fetch(url).catch(err => console.error("Gagal mengirim notif Telegram:", err));
+  fetch(url)
+    .then(() => {
+       // JIKA TELEGRAM BERHASIL, LANGSUNG CATAT KE SUPABASE AGAR REALTIME SEMUA HP TERPICU
+       return supabaseClient.from('log_notifikasi_telegram').insert([{
+           keterangan_event: keterangan,
+           nomor_pesanan: nomorPesanan,
+           nama_pekerjaan: namaKerjaan,
+           isi_pesan: message
+       }]);
+    })
+    .catch(err => console.error("Gagal mengirim notif atau log:", err));
 }
-    
+
   </script>
   <div id="toast"></div>
 </body>
