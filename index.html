@@ -1720,7 +1720,7 @@ async function saveQuickNote() {
   const orderIdx = allOrders.findIndex(o => o.id === quickNoteOrderId);
   if (orderIdx === -1) return;
 
-  // 2. Buat Format Tanggal dan Jam saat ini (Contoh: 08 Sep 2026, 14:30)
+  // 2. Buat Format Tanggal dan Jam saat ini
   const now = new Date();
   const hari = String(now.getDate()).padStart(2, '0');
   const bulan = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'][now.getMonth()];
@@ -1730,12 +1730,13 @@ async function saveQuickNote() {
   
   const timestamp = `${hari} ${bulan} ${tahun}, ${jam}:${menit}`;
 
-  // 3. GABUNGKAN catatan lama dengan catatan baru beserta timestamp
+  // 3. GABUNGKAN catatan (REVISI TERBARU MUNCUL PALING ATAS)
   const oldNote = allOrders[orderIdx].description || "";
   const headerRevisi = `[Revisi - ${timestamp}]`;
   
+  // MODIFIKASI DISINI: headerRevisi & newNote diletakkan di depan oldNote
   const combinedNote = oldNote 
-    ? oldNote + "\n\n" + headerRevisi + "\n" + newNote 
+    ? headerRevisi + "\n" + newNote + "\n\n------------------\n\n" + oldNote 
     : headerRevisi + "\n" + newNote;
 
   // Animasi Loading
@@ -1749,7 +1750,7 @@ async function saveQuickNote() {
   allOrders[orderIdx].description = combinedNote;
 
   try {
-    // 5. Kirim catatan yang sudah digabung (combinedNote) ke API
+    // 5. Kirim catatan yang sudah digabung ke API
     const url = `${WEB_APP_URL}?action=updateDescription&id=${encodeURIComponent(quickNoteOrderId)}&description=${encodeURIComponent(combinedNote)}`;
     const response = await fetch(url);
     const result = await response.json();
@@ -1757,7 +1758,7 @@ async function saveQuickNote() {
     if (result.success) {
       showToast("✓ Revisi catatan berhasil ditambahkan!");
       
-      // --- TAMBAHAN KODE TELEGRAM REVISI ---
+      // --- KODE TELEGRAM REVISI ---
       const order = allOrders[orderIdx];
       const notifMsg = `⚠️ *REVISI / UPDATE CATATAN!*\n` +
                        `🆔 *ID Order:* ${order.id}\n` +
@@ -1768,7 +1769,7 @@ async function saveQuickNote() {
       // -------------------------------------
 
       closeQuickNoteModal();
-      applyFilters();
+      applyFilters(); // Render ulang UI untuk memunculkan badge notifikasi merah
     } else {
       showToast("❌ Gagal: " + (result.message || "Terjadi kesalahan"));
     }
@@ -1783,6 +1784,7 @@ async function saveQuickNote() {
     if (window.lucide) lucide.createIcons();
   }
 }
+
 
 function closeQuickNoteModal() {
   const modal = document.getElementById('quick-note-modal');
