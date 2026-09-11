@@ -1125,7 +1125,7 @@ async function handleFormSubmit(e) {
     
     const result = await response.json();
 
-   if (result.success) {
+    if (result.success) {
       showToast("✓ Pesanan Tersimpan!");
       
       // --- TAMBAHAN KODE TELEGRAM PESANAN BARU ---
@@ -1140,21 +1140,40 @@ async function handleFormSubmit(e) {
 
       e.target.reset();
       toggleOrderLogic(); // Reset form ke state default
-      await loadOrders();
-      processOrderRekap();
+      
+      // ✅ 1. LANGSUNG PINDAH TAB TANPA MENUNGGU
       switchTab('antrian');
+      
+      // ✅ 2. KEMBALIKAN TOMBOL KE NORMAL LEBIH AWAL
+      btn.disabled = false;
+      btn.classList.remove('opacity-70', 'cursor-not-allowed');
+      btn.innerHTML = originalContent;
+      if (window.lucide) lucide.createIcons();
+
+      // ✅ 3. JALANKAN REFRESH DI LATAR BELAKANG (Hapus kata 'await')
+      processOrderRekap();
+      loadOrders(); 
+      
     } else {
       showToast("❌ Gagal: " + (result.error || "Gagal simpan"));
+      
+      // Kembalikan tombol jika gagal
+      btn.disabled = false;
+      btn.classList.remove('opacity-70', 'cursor-not-allowed');
+      btn.innerHTML = originalContent;
+      if (window.lucide) lucide.createIcons();
     }
   } catch (err) {
     console.error(err);
     showToast("❌ Gagal terhubung ke server");
-  } finally {
+    
+    // Kembalikan tombol jika error
     btn.disabled = false;
     btn.classList.remove('opacity-70', 'cursor-not-allowed');
     btn.innerHTML = originalContent;
     if (window.lucide) lucide.createIcons();
-  }
+  } 
+  // ❌ HAPUS BLOK `finally { ... }` YANG ADA DI BAWAH KARENA SUDAH DITANGANI DI ATAS
 }
 
 function openDetail(id) {
