@@ -23,14 +23,15 @@
   animation: shimmer 1.5s infinite linear;
 }
 
-/* Efek Cahaya (Glow) Notifikasi */
-    @keyframes glow-notif {
-      0% { box-shadow: 0 0 5px rgba(37, 99, 235, 0.2), 0 0 10px rgba(37, 99, 235, 0.2); }
-      50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.6); }
-      100% { box-shadow: 0 0 5px rgba(37, 99, 235, 0.2), 0 0 10px rgba(37, 99, 235, 0.2); }
+/* Efek Cahaya (Glow) Khusus Tombol */
+    @keyframes glow-button {
+      0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); background-color: transparent; }
+      50% { box-shadow: 0 0 12px 6px rgba(37, 99, 235, 0.3); background-color: #eff6ff; color: #2563eb; }
+      100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); background-color: transparent; }
     }
-    .animate-glow {
-      animation: glow-notif 2s infinite ease-in-out;
+    .btn-glow {
+      animation: glow-button 1s infinite ease-in-out; /* Angka ini diperkecil agar kedipnya lebih cepat */
+      border-radius: 9999px; 
     }
 
 @keyframes shimmer {
@@ -180,9 +181,10 @@
   </div>
 </header>
 
-<!-- Tooltip Pengenalan WA (Letakkan di bawah </header>) -->
-<div id="wa-tooltip" class="hidden fixed top-16 right-4 w-72 bg-blue-900 text-white p-4 rounded-2xl shadow-2xl z-50 border border-blue-400 animate-glow">
-  <div class="absolute -top-2 right-6 w-4 h-4 bg-blue-900 transform rotate-45"></div>
+<!-- Tooltip Pengenalan WA (Digeser ke kiri menggunakan right-8) -->
+<div id="wa-tooltip" class="hidden fixed top-16 right-8 w-72 bg-blue-900 text-white p-4 rounded-2xl shadow-2xl z-50">
+  <!-- Panah kecil penunjuk arah digeser sedikit ke kiri juga (ubah right-6 menjadi right-10) -->
+  <div class="absolute -top-2 right-10 w-4 h-4 bg-blue-900 border-t border-l border-blue-400 transform rotate-45"></div>
   <div class="flex justify-between items-start mb-2 relative z-10">
     <div class="flex items-center gap-2">
       <i data-lucide="info" class="w-5 h-5 text-blue-300"></i>
@@ -700,36 +702,67 @@ async function checkForUpdates() {
 // Jalankan otomatis
 document.addEventListener('DOMContentLoaded', checkForUpdates);
 
-// Fungsi mengecek hari dan memunculkan tooltip
+// Fungsi mengecek hari dan memunculkan tooltip + cahaya di tombol
 function checkDailyTooltip() {
-  // Ambil tanggal hari ini (format lokal)
   const today = new Date().toLocaleDateString('id-ID');
   const lastDate = localStorage.getItem('lastTooltipDate');
   
-  // Jika tanggal di sistem beda dengan hari ini (hari baru)
   if (lastDate !== today) {
-    // Reset limit WA ke 0
     localStorage.setItem('waShareCount', '0');
-    // Set tanggal terakhir dibuka menjadi hari ini
     localStorage.setItem('lastTooltipDate', today);
     
-    // Tampilkan tooltip dengan sedikit penundaan agar natural
     setTimeout(() => {
       const tooltip = document.getElementById('wa-tooltip');
+      const btnWa = document.getElementById('btn-rekap-wa');
+      
       if(tooltip) tooltip.classList.remove('hidden');
+      if(btnWa) btnWa.classList.add('btn-glow'); // << Tombol WA mulai bersinar
     }, 1500); 
   }
 }
 
-// Fungsi menutup tooltip
+// Fungsi menutup tooltip dan mematikan cahaya tombol
 function closeWaTooltip() {
   document.getElementById('wa-tooltip').classList.add('hidden');
+  
+  const btnWa = document.getElementById('btn-rekap-wa');
+  if(btnWa) btnWa.classList.remove('btn-glow'); // << Cahaya tombol WA dimatikan
 }
 
 // Panggil fungsi cek harian saat web dimuat
 document.addEventListener('DOMContentLoaded', () => {
   checkDailyTooltip();
 });
+
+// Fungsi untuk mematikan tombol WA jika sudah limit
+function updateWaButtonState() {
+  const btnWa = document.getElementById('btn-rekap-wa');
+  if (!btnWa) return;
+  
+  const today = new Date().toLocaleDateString('id-ID');
+  let waCount = parseInt(localStorage.getItem('waShareCount') || '0');
+  
+  // Jika hari berganti tapi belum terekam
+  if (localStorage.getItem('lastTooltipDate') !== today) {
+     waCount = 0;
+  }
+  
+  if (waCount >= 2) {
+     // Matikan tombol
+     btnWa.disabled = true;
+     // Buat jadi redup dan hapus efek hover menggunakan class Tailwind
+     btnWa.classList.add('opacity-30', 'cursor-not-allowed');
+     btnWa.classList.remove('active:text-green-600', 'hover:text-green-600');
+     // Ubah teks saat di-hover
+     btnWa.title = "Batas maksimal WA (2x sehari) telah habis.";
+  } else {
+     // Hidupkan tombol
+     btnWa.disabled = false;
+     btnWa.classList.remove('opacity-30', 'cursor-not-allowed');
+     btnWa.classList.add('active:text-green-600', 'hover:text-green-600');
+     btnWa.title = "Rekap ke WhatsApp";
+  }
+}
 
 
 // Fungsi untuk menampilkan daftar di modal
@@ -2159,9 +2192,8 @@ function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false) {
     fetch(url).then(res => { if(res.ok) showToast("✓ Rekap terkirim Telegram!"); });
   }
 
-
   // Kirim WhatsApp via Fonnte
-  if (sendToWhatsApp) {
+ if (sendToWhatsApp) {
     const today = new Date().toLocaleDateString('id-ID');
     let waCount = parseInt(localStorage.getItem('waShareCount') || '0');
     
@@ -2181,8 +2213,8 @@ function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false) {
     const btnWa = document.getElementById('btn-rekap-wa');
     const originalIcon = btnWa ? btnWa.innerHTML : '';
     if (btnWa) btnWa.innerHTML = '<i class="animate-spin w-5 h-5" data-lucide="loader-2"></i>';
-    
-   const tokenFonnte = 'cAswYc8237BQhnuGWdBE'; 
+        
+    const tokenFonnte = 'cAswYc8237BQhnuGWdBE'; 
     const targetWA = '120363421730994663@g.us';
     
     const formData = new FormData();
@@ -2202,6 +2234,11 @@ function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false) {
          // Tambah hitungan pemakaian jika berhasil terkirim
          waCount++;
          localStorage.setItem('waShareCount', waCount.toString());
+         
+         // TAMBAHAN INI: Agar tombol langsung disable & redup seketika pada klik ke-2
+         if (typeof updateWaButtonState === 'function') {
+           updateWaButtonState();
+         }
        }
        else showToast("❌ WA Gagal: " + (result.reason || "Cek Token/Target"));
     })
@@ -2213,6 +2250,11 @@ function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false) {
        }
     });
   }
+
+  // Menghilangkan efek cahaya (glow) setelah tombol diklik
+  const btnWaEl = document.getElementById('btn-rekap-wa');
+  if (btnWaEl) btnWaEl.classList.remove('btn-glow');
+
 }
 
     // Fungsi untuk memuat data di awal (background process)
