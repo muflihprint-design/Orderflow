@@ -23,6 +23,16 @@
   animation: shimmer 1.5s infinite linear;
 }
 
+/* Efek Cahaya (Glow) Notifikasi */
+    @keyframes glow-notif {
+      0% { box-shadow: 0 0 5px rgba(37, 99, 235, 0.2), 0 0 10px rgba(37, 99, 235, 0.2); }
+      50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.6); }
+      100% { box-shadow: 0 0 5px rgba(37, 99, 235, 0.2), 0 0 10px rgba(37, 99, 235, 0.2); }
+    }
+    .animate-glow {
+      animation: glow-notif 2s infinite ease-in-out;
+    }
+
 @keyframes shimmer {
   0% { background-position: -468px 0; }
   100% { background-position: 468px 0; }
@@ -169,6 +179,23 @@
      </button>
   </div>
 </header>
+
+<!-- Tooltip Pengenalan WA (Letakkan di bawah </header>) -->
+<div id="wa-tooltip" class="hidden fixed top-16 right-4 w-72 bg-blue-900 text-white p-4 rounded-2xl shadow-2xl z-50 border border-blue-400 animate-glow">
+  <div class="absolute -top-2 right-6 w-4 h-4 bg-blue-900 transform rotate-45"></div>
+  <div class="flex justify-between items-start mb-2 relative z-10">
+    <div class="flex items-center gap-2">
+      <i data-lucide="info" class="w-5 h-5 text-blue-300"></i>
+      <h4 class="font-bold text-sm">Info Fitur Baru</h4>
+    </div>
+    <button onclick="closeWaTooltip()" class="text-blue-300 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+  </div>
+  <p class="text-[11px] leading-relaxed relative z-10 text-blue-50">
+    Setiap pagi <b>Admin Muflih Print</b> bertugas untuk memperbarui seluruh status orderan.<br><br>
+    Setelah semua status diperbarui, tekan tombol ini untuk merekap dan membagikan antrian ke grup WhatsApp.<br><br>
+    <span class="text-yellow-300 font-bold">⚠️ Fitur tombol bagikan ke WhatsApp hanya berfungsi 2 kali dalam sehari.</span>
+  </p>
+</div>
 
   <!-- Navigation -->
   <nav class="nav-bar">
@@ -672,6 +699,38 @@ async function checkForUpdates() {
 
 // Jalankan otomatis
 document.addEventListener('DOMContentLoaded', checkForUpdates);
+
+// Fungsi mengecek hari dan memunculkan tooltip
+function checkDailyTooltip() {
+  // Ambil tanggal hari ini (format lokal)
+  const today = new Date().toLocaleDateString('id-ID');
+  const lastDate = localStorage.getItem('lastTooltipDate');
+  
+  // Jika tanggal di sistem beda dengan hari ini (hari baru)
+  if (lastDate !== today) {
+    // Reset limit WA ke 0
+    localStorage.setItem('waShareCount', '0');
+    // Set tanggal terakhir dibuka menjadi hari ini
+    localStorage.setItem('lastTooltipDate', today);
+    
+    // Tampilkan tooltip dengan sedikit penundaan agar natural
+    setTimeout(() => {
+      const tooltip = document.getElementById('wa-tooltip');
+      if(tooltip) tooltip.classList.remove('hidden');
+    }, 1500); 
+  }
+}
+
+// Fungsi menutup tooltip
+function closeWaTooltip() {
+  document.getElementById('wa-tooltip').classList.add('hidden');
+}
+
+// Panggil fungsi cek harian saat web dimuat
+document.addEventListener('DOMContentLoaded', () => {
+  checkDailyTooltip();
+});
+
 
 // Fungsi untuk menampilkan daftar di modal
 function renderImportList(data) {
@@ -2100,14 +2159,31 @@ function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false) {
     fetch(url).then(res => { if(res.ok) showToast("✓ Rekap terkirim Telegram!"); });
   }
 
+
   // Kirim WhatsApp via Fonnte
   if (sendToWhatsApp) {
+    const today = new Date().toLocaleDateString('id-ID');
+    let waCount = parseInt(localStorage.getItem('waShareCount') || '0');
+    
+    // Keamanan ekstra: Jika tanggal berubah tapi app tidak di-refresh
+    if (localStorage.getItem('lastTooltipDate') !== today) {
+       waCount = 0;
+       localStorage.setItem('lastTooltipDate', today);
+       localStorage.setItem('waShareCount', '0');
+    }
+
+    // Blokir jika sudah mencapai limit
+    if (waCount >= 2) {
+      showToast("⚠️ Batas pengiriman WhatsApp hari ini telah habis (Maks 2x sehari).");
+      return; 
+    }
+
     const btnWa = document.getElementById('btn-rekap-wa');
     const originalIcon = btnWa ? btnWa.innerHTML : '';
     if (btnWa) btnWa.innerHTML = '<i class="animate-spin w-5 h-5" data-lucide="loader-2"></i>';
     
-    const tokenFonnte = 'cAswYc8237BQhnuGWdBE'; 
-    const targetWA = '120363421730994663@g.us'; // UBAH INI: Masukkan ID Group WhatsApp Fonnte Anda
+   const tokenFonnte = 'cAswYc8237BQhnuGWdBE'; 
+    const targetWA = '120363421730994663@g.us';
     
     const formData = new FormData();
     formData.append('target', targetWA);
@@ -2121,7 +2197,12 @@ function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false) {
     })
     .then(response => response.json())
     .then(result => {
-       if (result.status) showToast("✓ Rekap terkirim ke WhatsApp!");
+       if (result.status) {
+         showToast("✓ Rekap terkirim ke WhatsApp!");
+         // Tambah hitungan pemakaian jika berhasil terkirim
+         waCount++;
+         localStorage.setItem('waShareCount', waCount.toString());
+       }
        else showToast("❌ WA Gagal: " + (result.reason || "Cek Token/Target"));
     })
     .catch(() => showToast("❌ Error jaringan saat kirim WA"))
