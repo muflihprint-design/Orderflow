@@ -160,7 +160,7 @@
   </div>
   <div class="flex items-center gap-3">
      <!-- Tombol Rekap WA -->
-    <button onclick="processOrderRekap(false)" class="..." title="Rekap ke WhatsApp">
+<button id="btn-rekap-wa" onclick="processOrderRekap(false, true)" class="p-2 text-gray-400 active:text-green-600 hover:text-green-600 transition-colors" title="Rekap ke WhatsApp">
   <i data-lucide="share-2" class="w-5 h-5"></i>
 </button>
      <!-- Tombol Refresh -->
@@ -1137,6 +1137,7 @@ async function handleFormSubmit(e) {
                        `📝 *Catatan:*\n${orderData.description}`;
       sendTelegramNotif(notifMsg, "PESANAN BARU", "ID BARU", orderData.jobName);
       // ------------------------------------------
+sendFonnteNotif(notifMsg);
 
       e.target.reset();
       toggleOrderLogic(); // Reset form ke state default
@@ -1832,6 +1833,7 @@ async function saveQuickNote() {
                        `💬 *Revisi Baru:*\n${newNote}`;
       sendTelegramNotif(notifMsg, "REVISI CATATAN", order.id, order.jobName || order.jobname);
       // -------------------------------------
+sendFonnteNotif(notifMsg);
 
       closeQuickNoteModal();
       applyFilters(); // Render ulang UI untuk memunculkan badge notifikasi merah
@@ -1942,7 +1944,7 @@ async function resolveRevisi() {
   }
 }
 
-function processOrderRekap(sendToTelegram = true) {
+function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false) {
   if (allOrders.length === 0) {
     showToast("Tidak ada data untuk direkap.");
     return;
@@ -1955,31 +1957,50 @@ function processOrderRekap(sendToTelegram = true) {
   batasUrgent.setDate(sekarang.getDate() + 2);
   batasUrgent.setHours(23, 59, 59, 999);
 
-  // Variabel untuk Rangkuman Status (Belum Fix)
   let countItem = 0, countDesain = 0, countRevisi = 0;
   let countCetakNow = 0, qtyCetakNow = 0, countCetakWaiting = 0, qtyCetakWaiting = 0;
   let countFinishingNow = 0, qtyFinishingNow = 0, countFinishingWaiting = 0, qtyFinishingWaiting = 0;
 
-  let urgentCount = 0;
-  let urgentQty = 0;
-  let urgentOrdersList = []; 
+  let urgentCount = 0, urgentQty = 0, urgentOrdersList = []; 
 
-   // Proses Hitung Rangkuman & Urgent
+  // Variabel Khusus Deadline Desain
+  let countDesainTelat = 0, countDesainHariIni = 0, countDesainBesok = 0;
+  let listDesainTelat = "", listDesainHariIni = "", listDesainBesok = "";
+
   allOrders.forEach(order => {
     const status = order.status;
     const qty = parseInt(order.quantity || 0);
 
-    // Hitung Urgent & Telat (Semua deadline <= batas lusa)
+    // Hitung Urgent & Telat Final
     if (status !== 'Selesai' && status !== 'Kirim' && order.finalDeadline) {
       const dDeadline = new Date(order.finalDeadline);
-      if (dDeadline <= batasUrgent) { // HAPUS 'dDeadline >= sekarang' agar deadline masa lalu ikut masuk
+      if (dDeadline <= batasUrgent) {
         urgentCount++;
         urgentQty += qty;
         urgentOrdersList.push(order); 
       }
     }
 
-    // Logika Rangkuman Per Status
+    // Hitung Khusus Deadline Tahap Desain
+    if (status === 'Desain' && order.statusDeadline) {
+      const dStage = new Date(order.statusDeadline);
+      dStage.setHours(0, 0, 0, 0);
+      const selisihHari = Math.round((dStage.getTime() - sekarang.getTime()) / (1000 * 3600 * 24));
+      const teksLine = `- ${order.customer}: ${order.jobName} (x${qty})\n`;
+
+      if (selisihHari < 0) {
+        countDesainTelat++; 
+        listDesainTelat += `- ${order.customer}: ${order.jobName} _(Telat ${Math.abs(selisihHari)} hari)_\n`;
+      } else if (selisihHari === 0) {
+        countDesainHariIni++; 
+        listDesainHariIni += teksLine;
+      } else if (selisihHari === 1) {
+        countDesainBesok++; 
+        listDesainBesok += teksLine;
+      }
+    }
+
+    // Rangkuman Per Status
     const rawEquip = order.equipment || "";
     const checkedEquip = (order.checkedEquipment || "").toLowerCase();
     let itemBelumLengkap = false;
@@ -1992,34 +2013,25 @@ function processOrderRekap(sendToTelegram = true) {
       itemBelumLengkap = true; 
     }
 
-    if (itemBelumLengkap && !['Selesai', 'Kirim'].includes(status)) {
-      countItem++;
-    }
-    
+    if (itemBelumLengkap && !['Selesai', 'Kirim'].includes(status)) countItem++;
     if (status === 'Desain') countDesain++;
     if (status === 'Revisi') countRevisi++;
     
-    // Logika Cetak
     if (status === 'Cetak' || status === 'Konfirmasi') {
-      countCetakNow++;
-      qtyCetakNow += qty;
+      countCetakNow++; qtyCetakNow += qty;
     } else if (['Item', 'Desain', 'Revisi'].includes(status)) {
-      countCetakWaiting++;
-      qtyCetakWaiting += qty;
+      countCetakWaiting++; qtyCetakWaiting += qty;
     }
 
-    // Logika Finishing
     if (status === 'Finishing') {
-      countFinishingNow++;
-      qtyFinishingNow += qty;
+      countFinishingNow++; qtyFinishingNow += qty;
     } else if (['Item', 'Desain', 'Revisi', 'Cetak', 'Konfirmasi'].includes(status)) {
-      countFinishingWaiting++;
-      qtyFinishingWaiting += qty;
+      countFinishingWaiting++; qtyFinishingWaiting += qty;
     }
   });
 
-  // Susun Teks Rangkuman Paling Atas
-  let teksRekap = `📊 *RANGKUMAN STATUS (BELUM FIX)*\n`;
+  // 1. Susun Header Rangkuman
+  let teksRekap = `📊 *RANGKUMAN STATUS*\n`;
   teksRekap += `• Item: ${countItem} Orderan\n`;
   teksRekap += `• Desain: ${countDesain} Orderan\n`;
   teksRekap += `• Revisi Desain: ${countRevisi} Orderan\n`;
@@ -2027,7 +2039,16 @@ function processOrderRekap(sendToTelegram = true) {
   teksRekap += `• Finishing: ${countFinishingNow} Orderan (${qtyFinishingNow.toLocaleString()} pcs), ${countFinishingWaiting} Orderan masih proses desain/revisi/cetak (${qtyFinishingWaiting.toLocaleString()} pcs)\n`;
   teksRekap += `--------------------------\n\n`;
 
-  // --- BAGIAN URGENT & TELAT ---
+  // 2. Susun Khusus Deadline Desain
+  teksRekap += `🎨 *DEADLINE TAHAP DESAIN*\n`;
+  let adaDesainMendesak = false;
+  if (countDesainTelat > 0) { teksRekap += `❌ *TELAT:*\n${listDesainTelat}\n`; adaDesainMendesak = true; }
+  if (countDesainHariIni > 0) { teksRekap += `🔥 *HARI INI:*\n${listDesainHariIni}\n`; adaDesainMendesak = true; }
+  if (countDesainBesok > 0) { teksRekap += `⚡ *BESOK:*\n${listDesainBesok}\n`; adaDesainMendesak = true; }
+  if (!adaDesainMendesak) teksRekap += `_Aman, tidak ada antrian desain mendesak._\n\n`;
+  teksRekap += `--------------------------\n\n`;
+
+  // 3. Susun Deadline Final
   let countTelat = 0, qtyTelat = 0, listTelat = "";
   let countHariIni = 0, qtyHariIni = 0, listHariIni = "";
   let countBesok = 0, qtyBesok = 0, listBesok = "";
@@ -2035,72 +2056,81 @@ function processOrderRekap(sendToTelegram = true) {
 
   if (urgentOrdersList.length > 0) {
     urgentOrdersList.sort((a, b) => new Date(a.finalDeadline) - new Date(b.finalDeadline));
-    
     urgentOrdersList.forEach((uOrder) => {
       const dDead = new Date(uOrder.finalDeadline);
       dDead.setHours(0, 0, 0, 0);
       const selisihHari = Math.round((dDead.getTime() - sekarang.getTime()) / (1000 * 3600 * 24));
       const q = parseInt(uOrder.quantity || 0);
-      
       const tahap = uOrder.status ? uOrder.status.toUpperCase() : "BELUM ADA";
       const teksLine = `- ${uOrder.customer}: ${uOrder.jobName} (x${q}) ➔ *[${tahap}]*\n`;
 
       if (selisihHari < 0) {
-        // Jika selisih hari minus (artinya telat)
-        countTelat++;
-        qtyTelat += q;
+        countTelat++; qtyTelat += q;
         listTelat += `- ${uOrder.customer}: ${uOrder.jobName} (x${q}) ➔ *[${tahap}]* _(Telat ${Math.abs(selisihHari)} hari)_\n`;
       } else if (selisihHari === 0) {
-        countHariIni++;
-        qtyHariIni += q;
-        listHariIni += teksLine;
+        countHariIni++; qtyHariIni += q; listHariIni += teksLine;
       } else if (selisihHari === 1) {
-        countBesok++;
-        qtyBesok += q;
-        listBesok += teksLine;
+        countBesok++; qtyBesok += q; listBesok += teksLine;
       } else if (selisihHari === 2) {
-        countLusa++;
-        qtyLusa += q;
-        listLusa += teksLine;
+        countLusa++; qtyLusa += q; listLusa += teksLine;
       }
     });
   }
 
-  teksRekap += `🚨 *URGENT & TELAT DEADLINE*\n`;
+  teksRekap += `🚨 *DEADLINE FINAL URGENT*\n`;
   teksRekap += `📦 Total Keseluruhan: ${urgentCount} Order (${urgentQty.toLocaleString()} pcs)\n`;
   teksRekap += `--------------------------\n\n`;
 
-  if (countTelat > 0) {
-    teksRekap += `❌ *TELAT DEADLINE* (${countTelat} Order | ${qtyTelat.toLocaleString()} pcs)\n`;
-    teksRekap += listTelat + `\n`;
-  }
-  if (countHariIni > 0) {
-    teksRekap += `🔥 *HARI INI* (${countHariIni} Order | ${qtyHariIni.toLocaleString()} pcs)\n`;
-    teksRekap += listHariIni + `\n`;
-  }
-  if (countBesok > 0) {
-    teksRekap += `⚡ *BESOK* (${countBesok} Order | ${qtyBesok.toLocaleString()} pcs)\n`;
-    teksRekap += listBesok + `\n`;
-  }
-  if (countLusa > 0) {
-    teksRekap += `⚠️ *LUSA* (${countLusa} Order | ${qtyLusa.toLocaleString()} pcs)\n`;
-    teksRekap += listLusa + `\n`;
-  }
-  
-  if (urgentCount === 0) {
-    teksRekap += `_Tidak ada orderan urgent atau telat saat ini._\n\n`;
-  }
+  if (countTelat > 0) teksRekap += `❌ *TELAT FINAL* (${countTelat} Order | ${qtyTelat.toLocaleString()} pcs)\n${listTelat}\n`;
+  if (countHariIni > 0) teksRekap += `🔥 *HARI INI* (${countHariIni} Order | ${qtyHariIni.toLocaleString()} pcs)\n${listHariIni}\n`;
+  if (countBesok > 0) teksRekap += `⚡ *BESOK* (${countBesok} Order | ${qtyBesok.toLocaleString()} pcs)\n${listBesok}\n`;
+  if (countLusa > 0) teksRekap += `⚠️ *LUSA* (${countLusa} Order | ${qtyLusa.toLocaleString()} pcs)\n${listLusa}\n`;
+  if (urgentCount === 0) teksRekap += `_Tidak ada orderan urgent final saat ini._\n\n`;
 
-  // Pengiriman dan Copy API
+  // Salin Teks
   navigator.clipboard.writeText(teksRekap).then(() => {
-    if (!sendToTelegram) showToast("Rekap disalin!");
+    if (!sendToTelegram && !sendToWhatsApp) showToast("Rekap disalin!");
   });
 
+  // Kirim Telegram
   if (sendToTelegram) {
     const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U';
     const chatId = '-5026846679';
     const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(teksRekap)}&parse_mode=Markdown`;
-    fetch(url).then(res => { if(res.ok) showToast("✓ Rekap terkirim!"); });
+    fetch(url).then(res => { if(res.ok) showToast("✓ Rekap terkirim Telegram!"); });
+  }
+
+  // Kirim WhatsApp via Fonnte
+  if (sendToWhatsApp) {
+    const btnWa = document.getElementById('btn-rekap-wa');
+    const originalIcon = btnWa ? btnWa.innerHTML : '';
+    if (btnWa) btnWa.innerHTML = '<i class="animate-spin w-5 h-5" data-lucide="loader-2"></i>';
+    
+    const tokenFonnte = 'cAswYc8237BQhnuGWdBE'; 
+    const targetWA = '120363421730994663@g.us'; // UBAH INI: Masukkan ID Group WhatsApp Fonnte Anda
+    
+    const formData = new FormData();
+    formData.append('target', targetWA);
+    formData.append('message', teksRekap);
+    formData.append('countryCode', '62');
+
+    fetch('https://api.fonnte.com/send', {
+      method: 'POST',
+      headers: { 'Authorization': tokenFonnte },
+      body: formData
+    })
+    .then(response => response.json())
+    .then(result => {
+       if (result.status) showToast("✓ Rekap terkirim ke WhatsApp!");
+       else showToast("❌ WA Gagal: " + (result.reason || "Cek Token/Target"));
+    })
+    .catch(() => showToast("❌ Error jaringan saat kirim WA"))
+    .finally(() => {
+       if (btnWa) {
+          btnWa.innerHTML = originalIcon;
+          if (window.lucide) lucide.createIcons();
+       }
+    });
   }
 }
 
@@ -2436,6 +2466,28 @@ function sendTelegramNotif(message, keterangan = "UMUM", nomorPesanan = "-", nam
        }]);
     })
     .catch(err => console.error("Gagal mengirim notif atau log:", err));
+}
+
+function sendFonnteNotif(message) {
+  // Ganti TOKEN_FONNTE_ANDA dengan token dari dashboard Fonnte Anda
+  const token = '1miJ9xP7KfoZf2yRwVEm'; 
+  const targetNumber = '6285823253354';
+  
+  const formData = new FormData();
+  formData.append('target', targetNumber);
+  formData.append('message', message);
+  formData.append('countryCode', '62');
+
+  fetch('https://api.fonnte.com/send', {
+    method: 'POST',
+    headers: {
+      'Authorization': token
+    },
+    body: formData
+  })
+  .then(response => response.json())
+  .then(result => console.log("Notifikasi Fonnte terkirim:", result))
+  .catch(error => console.error("Gagal mengirim Fonnte:", error));
 }
 
   </script>
