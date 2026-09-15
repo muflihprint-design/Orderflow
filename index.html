@@ -396,8 +396,8 @@
         </div>
          <div>
           <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Deadline Final</label>
-          <input type="date" name="finalDeadline" required 
-                 class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-xs">
+          <input type="date" name="finalDeadline" required onchange="autoSetPriority()"
+       class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-xs">
         </div>
       </div>
     </div>
@@ -578,6 +578,28 @@
     <button onclick="closeStatusModal()" class="w-full py-2 text-gray-400 font-bold text-sm">BATAL</button>
   </div>
 </div>
+
+<!-- Modal Peringatan Sebelum Revisi -->
+  <div id="revision-warning-modal" class="fixed inset-0 z-[95] hidden bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-sm rounded-t-[2rem] sm:rounded-[2rem] overflow-hidden flex flex-col transform transition-all duration-300 p-6 text-center shadow-2xl">
+      
+      <div id="warning-icon-container" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+        <!-- Ikon akan diisi oleh JS -->
+      </div>
+      
+      <h3 id="warning-title" class="text-2xl font-black text-gray-900 mb-2 italic">Info Revisi</h3>
+      <p id="warning-message" class="text-sm text-gray-600 mb-6 leading-relaxed"></p>
+      
+      <div class="flex flex-col gap-2">
+        <button onclick="proceedToQuickNote()" class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black tracking-wide shadow-lg shadow-blue-200 active:scale-95 transition-all">
+          BAIK, SAYA MENGERTI
+        </button>
+        <button onclick="cancelRevisionWarning()" class="w-full py-3 text-gray-500 font-bold text-sm active:scale-95 transition-all">
+          Batal
+        </button>
+      </div>
+    </div>
+  </div>
 
 <!-- Modal Quick Edit Catatan -->
   <div id="quick-note-modal" class="fixed inset-0 z-[90] hidden bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -1093,6 +1115,33 @@ function togglePhotoLogic() {
       driveInput.value = '';
       driveError.classList.add('hidden');
     }
+  }
+}
+
+// FUNGSI BARU: Set Prioritas Otomatis Berdasarkan Deadline Final
+function autoSetPriority() {
+  const finalDeadlineInput = document.querySelector('input[name="finalDeadline"]');
+  const prioritySelect = document.querySelector('select[name="priority"]');
+  
+  if (!finalDeadlineInput.value) return;
+
+  const dFinal = new Date(finalDeadlineInput.value);
+  dFinal.setHours(0, 0, 0, 0);
+  const dNow = new Date();
+  dNow.setHours(0, 0, 0, 0);
+
+  const diffTime = dFinal.getTime() - dNow.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
+
+  if (diffDays <= 0) {
+    // Jika deadline hari ini (0) atau sudah lewat
+    prioritySelect.value = "Sangat Urgent";
+  } else if (diffDays <= 3) {
+    // Jika deadline tersisa 1, 2, atau 3 hari
+    prioritySelect.value = "Urgent";
+  } else {
+    // Jika deadline tersisa lebih dari 3 hari
+    prioritySelect.value = "Normal";
   }
 }
 
@@ -1805,18 +1854,19 @@ function renderList(targetId, orders, showDeadline) {
 
      let quickNoteOrderId = null;
 
-function openQuickEditNote(orderId, event) {
-  event.stopPropagation();
-  
-  const order = allOrders.find(o => o.id === orderId);
+// Fungsi jika Admin menekan "BAIK, SAYA MENGERTI"
+function proceedToQuickNote() {
+  // 1. Tutup modal peringatan
+  document.getElementById('revision-warning-modal').classList.add('hidden');
+
+  // 2. Buka modal input catatan (kode bawaan sebelumnya)
+  const order = allOrders.find(o => o.id === quickNoteOrderId);
   if (!order) return;
-  
-  quickNoteOrderId = orderId;
+
   const modal = document.getElementById('quick-note-modal');
   const input = document.getElementById('quick-note-input');
   const resolveBtn = document.getElementById('quick-note-resolve-btn');
   
-  // --- KODE BARU: Memuat catatan saat ini ke dalam modal ---
   const currentNoteContainer = document.getElementById('quick-note-current-container');
   const currentNoteEl = document.getElementById('quick-note-current');
   
@@ -1826,9 +1876,7 @@ function openQuickEditNote(orderId, event) {
   } else {
     currentNoteContainer.classList.add('hidden');
   }
-  // ---------------------------------------------------------
 
-  // Cek apakah ada revisi aktif untuk menampilkan tombol Selesai
   const activeRevisiCount = (order.description || "").match(/\[Revisi -/g)?.length || 0;
   if (activeRevisiCount > 0) {
     resolveBtn.classList.remove('hidden');
@@ -1836,13 +1884,88 @@ function openQuickEditNote(orderId, event) {
     resolveBtn.classList.add('hidden');
   }
   
-  // KOSONGKAN input agar bisa langsung mengetik catatan tambahan baru
   input.value = "";
-  
   modal.classList.remove('hidden');
   setTimeout(() => input.focus(), 100);
   
   if (window.lucide) lucide.createIcons();
+}
+
+// Fungsi jika Admin membatalkan
+function cancelRevisionWarning() {
+  document.getElementById('revision-warning-modal').classList.add('hidden');
+  quickNoteOrderId = null; // Bersihkan memori pilihan order
+}
+
+function openQuickEditNote(orderId, event) {
+  event.stopPropagation();
+  
+  const order = allOrders.find(o => o.id === orderId);
+  if (!order) return;
+  
+  quickNoteOrderId = orderId; 
+
+  let title = "";
+  let message = "";
+  let iconHtml = "";
+  let iconBg = "";
+
+  if (order.finalDeadline) {
+    const dFinal = new Date(order.finalDeadline);
+    dFinal.setHours(0, 0, 0, 0);
+    const dNow = new Date();
+    dNow.setHours(0, 0, 0, 0);
+
+    const diffTime = dFinal.getTime() - dNow.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
+    
+    // Ambil prioritas (default Normal)
+    const priority = (order.priority || "Normal").toLowerCase();
+
+    // 1. JIKA DEADLINE LEWAT (< 0) ATAU SANGAT URGENT: Buka form langsung, tanpa peringatan
+    if (diffDays < 0 || priority === "sangat urgent") {
+      proceedToQuickNote();
+      return;
+    }
+
+    // 2. ATUR BATAS REVISI BERDASARKAN PRIORITAS (Urgent = H-1, Normal = H-2)
+    const batasRevisi = (priority === "urgent") ? 1 : 2;
+
+    if (diffDays > batasRevisi) {
+      const sisaHari = diffDays - batasRevisi;
+      title = "Waktu Revisi Aman";
+      message = `Batas maksimal revisi tersisa <b class="text-blue-600 text-lg">${sisaHari} HARI</b> sebelum deadline final.`;
+      iconBg = "bg-blue-50 text-blue-500 border border-blue-100";
+      iconHtml = `<i data-lucide="info" class="w-8 h-8"></i>`;
+    } else if (diffDays === batasRevisi) {
+      title = "Peringatan Terakhir!";
+      message = `<b class="text-orange-600 text-lg">HARI INI</b> adalah batas waktu maksimal untuk revisi desain.`;
+      iconBg = "bg-orange-50 text-orange-500 border border-orange-200 animate-pulse";
+      iconHtml = `<i data-lucide="alert-triangle" class="w-8 h-8"></i>`;
+    } else {
+      const molorHari = batasRevisi - diffDays;
+      title = "Deadline Molor!";
+      message = `Batas revisi telah dilewati! Jika dilanjutkan, Deadline Final dipastikan <b class="text-red-600 text-lg">MOLOR ${molorHari} HARI</b> dari jadwal.`;
+      iconBg = "bg-red-50 text-red-600 border border-red-200 animate-bounce";
+      iconHtml = `<i data-lucide="alert-circle" class="w-8 h-8"></i>`;
+    }
+    
+    // Render Modal Peringatan
+    document.getElementById('warning-title').textContent = title;
+    document.getElementById('warning-message').innerHTML = message;
+    
+    const iconContainer = document.getElementById('warning-icon-container');
+    iconContainer.className = `w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm ${iconBg}`;
+    iconContainer.innerHTML = iconHtml;
+
+    const warningModal = document.getElementById('revision-warning-modal');
+    warningModal.classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+    
+  } else {
+    // Jika tidak ada data deadline final
+    proceedToQuickNote();
+  }
 }
 
 async function saveQuickNote() {
@@ -1857,11 +1980,40 @@ async function saveQuickNote() {
     return;
   }
 
-  // 1. Temukan order yang sedang direvisi
   const orderIdx = allOrders.findIndex(o => o.id === quickNoteOrderId);
   if (orderIdx === -1) return;
+  const order = allOrders[orderIdx]; 
 
-  // 2. Buat Format Tanggal dan Jam saat ini
+  // --- LOGIKA INFO SISTEM DI CATATAN ---
+  let infoBatasRevisi = "";
+  if (order.finalDeadline) {
+    const dFinal = new Date(order.finalDeadline);
+    dFinal.setHours(0, 0, 0, 0);
+    const dNow = new Date();
+    dNow.setHours(0, 0, 0, 0);
+
+    const diffTime = dFinal.getTime() - dNow.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
+    const priority = (order.priority || "Normal").toLowerCase();
+
+    // HANYA cetak info batas revisi JIKA belum lewat deadline (>= 0) DAN bukan Sangat Urgent
+    if (diffDays >= 0 && priority !== "sangat urgent") {
+      const batasRevisi = (priority === "urgent") ? 1 : 2;
+
+      if (diffDays > batasRevisi) {
+        const sisaHari = diffDays - batasRevisi;
+        infoBatasRevisi = `\n\n📌 *INFO SISTEM:* Batas revisi tersisa ${sisaHari} hari sebelum deadline final.`;
+      } else if (diffDays === batasRevisi) {
+        infoBatasRevisi = `\n\n🚨 *INFO SISTEM:* HARI INI ADALAH TERAKHIR REVISI DESAIN.`;
+      } else {
+        const molorHari = batasRevisi - diffDays;
+        infoBatasRevisi = `\n\n❌ *INFO SISTEM:* Melewati batas revisi! Deadline Final molor ${molorHari} hari.`;
+      }
+    }
+  }
+
+  const noteWithInfo = newNote + infoBatasRevisi;
+
   const now = new Date();
   const hari = String(now.getDate()).padStart(2, '0');
   const bulan = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'][now.getMonth()];
@@ -1871,35 +2023,28 @@ async function saveQuickNote() {
   
   const timestamp = `${hari} ${bulan} ${tahun}, ${jam}:${menit}`;
 
-  // 3. GABUNGKAN catatan (REVISI TERBARU MUNCUL PALING ATAS)
-  const oldNote = allOrders[orderIdx].description || "";
+  const oldNote = order.description || "";
   const headerRevisi = `[Revisi - ${timestamp}]`;
   
-  // MODIFIKASI DISINI: headerRevisi & newNote diletakkan di depan oldNote
   const combinedNote = oldNote 
-    ? headerRevisi + "\n" + newNote + "\n\n------------------\n\n" + oldNote 
-    : headerRevisi + "\n" + newNote;
+    ? headerRevisi + "\n" + noteWithInfo + "\n\n------------------\n\n" + oldNote 
+    : headerRevisi + "\n" + noteWithInfo;
 
-  // Animasi Loading
   const originalHtml = btn.innerHTML;
   btn.innerHTML = '<i class="animate-spin w-5 h-5" data-lucide="loader-2"></i> MENYIMPAN...';
   btn.disabled = true;
   btn.classList.add('opacity-70', 'cursor-not-allowed');
   if (window.lucide) lucide.createIcons();
 
- // 4. Update Data Lokal dengan catatan yang sudah digabung
   allOrders[orderIdx].description = combinedNote;
 
-  // --- KODE BARU: OTOMATIS UBAH STATUS KE REVISI ---
   let statusBerubah = false;
   if (allOrders[orderIdx].status !== 'Revisi') {
     allOrders[orderIdx].status = 'Revisi';
     statusBerubah = true;
   }
-  // -------------------------------------------------
 
   try {
-    // 5. Kirim catatan yang sudah digabung ke API
     const url = `${WEB_APP_URL}?action=updateDescription&id=${encodeURIComponent(quickNoteOrderId)}&description=${encodeURIComponent(combinedNote)}`;
     const response = await fetch(url);
     const result = await response.json();
@@ -1907,28 +2052,23 @@ async function saveQuickNote() {
     if (result.success) {
       showToast("✓ Revisi catatan berhasil ditambahkan!");
 
-      // --- KODE BARU: KIRIM PERUBAHAN STATUS KE SPREADSHEET ---
       if (statusBerubah) {
         const stageDl = allOrders[orderIdx].statusDeadline || "";
         const finalDl = allOrders[orderIdx].finalDeadline || "";
         const statusUrl = `${WEB_APP_URL}?action=updateStatus&id=${encodeURIComponent(quickNoteOrderId)}&status=Revisi&statusDeadline=${encodeURIComponent(stageDl)}&finalDeadline=${encodeURIComponent(finalDl)}`;
-        fetch(statusUrl); // Berjalan di latar belakang agar UI tetap cepat
+        fetch(statusUrl); 
       }
-      // --------------------------------------------------------
       
-      // --- KODE TELEGRAM REVISI ---
-      const order = allOrders[orderIdx];
       const notifMsg = `⚠️ *REVISI / UPDATE CATATAN!*\n` +
                        `🆔 *ID Order:* ${order.id}\n` +
                        `👤 *Pelanggan:* ${order.customer}\n` +
                        `🏷️ *Kerjaan:* ${order.jobName || order.jobname}\n` +
-                       `💬 *Revisi Baru:*\n${newNote}`;
+                       `💬 *Revisi Baru:*\n${noteWithInfo}`;
       sendTelegramNotif(notifMsg, "REVISI CATATAN", order.id, order.jobName || order.jobname);
-      // -------------------------------------
-sendFonnteNotif(notifMsg);
+      sendFonnteNotif(notifMsg);
 
       closeQuickNoteModal();
-      applyFilters(); // Render ulang UI untuk memunculkan badge notifikasi merah
+      applyFilters(); 
     } else {
       showToast("❌ Gagal: " + (result.message || "Terjadi kesalahan"));
     }
@@ -1936,14 +2076,12 @@ sendFonnteNotif(notifMsg);
     console.error(err);
     showToast("❌ Error koneksi ke server");
   } finally {
-    // Kembalikan status tombol
     btn.innerHTML = originalHtml;
     btn.disabled = false;
     btn.classList.remove('opacity-70', 'cursor-not-allowed');
     if (window.lucide) lucide.createIcons();
   }
 }
-
 
 function closeQuickNoteModal() {
   const modal = document.getElementById('quick-note-modal');
