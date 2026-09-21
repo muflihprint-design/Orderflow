@@ -1293,8 +1293,8 @@ sendFonnteNotif(notifMsg);
       if (window.lucide) lucide.createIcons();
 
       // ✅ 3. JALANKAN REFRESH DI LATAR BELAKANG (Hapus kata 'await')
-      processOrderRekap();
-      loadOrders(); 
+      processOrderRekap(true, false, `🌟 PESANAN BARU MASUK: ${orderData.customer} - ${orderData.jobName} (x${orderData.quantity})`);
+      loadOrders();
       
     } else {
       showToast("❌ Gagal: " + (result.error || "Gagal simpan"));
@@ -1613,7 +1613,7 @@ async function confirmStatus(newStatus) {
          nama_pekerjaan: order.jobName || order.jobname || "-",
          isi_pesan: `Status pesanan diubah ke ${newStatus}`
       }]).then(() => {
-         processOrderRekap(); 
+         processOrderRekap(true, false, `🔄 PERUBAHAN STATUS: Pesanan ${order.customer} (${order.jobName || order.jobname}) telah diupdate menjadi tahap ${newStatus}.`); 
       });
       
     } else {
@@ -2174,7 +2174,7 @@ async function resolveRevisi() {
   }
 }
 
-function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false) {
+function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false, pesanPerubahan = "") {
   if (allOrders.length === 0) {
     showToast("Tidak ada data untuk direkap.");
     return;
@@ -2201,7 +2201,6 @@ function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false) {
     const status = order.status;
     const qty = parseInt(order.quantity || 0);
 
-    // Hitung Urgent & Telat Final
     if (status !== 'Selesai' && status !== 'Kirim' && order.finalDeadline) {
       const dDeadline = new Date(order.finalDeadline);
       if (dDeadline <= batasUrgent) {
@@ -2211,7 +2210,6 @@ function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false) {
       }
     }
 
-    // Hitung Khusus Deadline Tahap Desain
     if (status === 'Desain' && order.statusDeadline) {
       const dStage = new Date(order.statusDeadline);
       dStage.setHours(0, 0, 0, 0);
@@ -2230,7 +2228,6 @@ function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false) {
       }
     }
 
-    // Rangkuman Per Status
     const rawEquip = order.equipment || "";
     const checkedEquip = (order.checkedEquipment || "").toLowerCase();
     let itemBelumLengkap = false;
@@ -2260,8 +2257,14 @@ function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false) {
     }
   });
 
-  // 1. Susun Header Rangkuman
-  let teksRekap = `📊 *RANGKUMAN STATUS*\n`;
+  let teksRekap = "";
+
+  // --- LOGIKA OTOMATIS: Jika ada pesan perubahan, letakkan paling atas ---
+  if (pesanPerubahan && pesanPerubahan.trim() !== "") {
+    teksRekap += `🔔 *INFO AKTIVITAS TERBARU:*\n_${pesanPerubahan}_\n\n`;
+  }
+
+  teksRekap += `📊 *RANGKUMAN STATUS*\n`;
   teksRekap += `• Item: ${countItem} Orderan\n`;
   teksRekap += `• Desain: ${countDesain} Orderan\n`;
   teksRekap += `• Revisi Desain: ${countRevisi} Orderan\n`;
@@ -2269,7 +2272,6 @@ function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false) {
   teksRekap += `• Finishing: ${countFinishingNow} Orderan (${qtyFinishingNow.toLocaleString()} pcs), ${countFinishingWaiting} Orderan masih proses desain/revisi/cetak (${qtyFinishingWaiting.toLocaleString()} pcs)\n`;
   teksRekap += `--------------------------\n\n`;
 
-  // 2. Susun Khusus Deadline Desain
   teksRekap += `🎨 *DEADLINE TAHAP DESAIN*\n`;
   let adaDesainMendesak = false;
   if (countDesainTelat > 0) { teksRekap += `❌ *TELAT:*\n${listDesainTelat}\n`; adaDesainMendesak = true; }
@@ -2278,7 +2280,6 @@ function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false) {
   if (!adaDesainMendesak) teksRekap += `_Aman, tidak ada antrian desain mendesak._\n\n`;
   teksRekap += `--------------------------\n\n`;
 
-  // 3. Susun Deadline Final
   let countTelat = 0, qtyTelat = 0, listTelat = "";
   let countHariIni = 0, qtyHariIni = 0, listHariIni = "";
   let countBesok = 0, qtyBesok = 0, listBesok = "";
@@ -2317,12 +2318,10 @@ function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false) {
   if (countLusa > 0) teksRekap += `⚠️ *LUSA* (${countLusa} Order | ${qtyLusa.toLocaleString()} pcs)\n${listLusa}\n`;
   if (urgentCount === 0) teksRekap += `_Tidak ada orderan urgent final saat ini._\n\n`;
 
-  // Salin Teks
   navigator.clipboard.writeText(teksRekap).then(() => {
     if (!sendToTelegram && !sendToWhatsApp) showToast("Rekap disalin!");
   });
 
-  // Kirim Telegram
   if (sendToTelegram) {
     const token = '8679721836:AAHUoZCeD87r2mlpdQzuI4KpKetkJQ379-U';
     const chatId = '-5026846679';
@@ -2330,19 +2329,16 @@ function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false) {
     fetch(url).then(res => { if(res.ok) showToast("✓ Rekap terkirim Telegram!"); });
   }
 
-  // Kirim WhatsApp via Fonnte
- if (sendToWhatsApp) {
+  if (sendToWhatsApp) {
     const today = new Date().toLocaleDateString('id-ID');
     let waCount = parseInt(localStorage.getItem('waShareCount') || '0');
     
-    // Keamanan ekstra: Jika tanggal berubah tapi app tidak di-refresh
     if (localStorage.getItem('lastTooltipDate') !== today) {
        waCount = 0;
        localStorage.setItem('lastTooltipDate', today);
        localStorage.setItem('waShareCount', '0');
     }
 
-    // Blokir jika sudah mencapai limit
     if (waCount >= 2) {
       showToast("⚠️ Batas pengiriman WhatsApp hari ini telah habis (Maks 2x sehari).");
       return; 
@@ -2369,16 +2365,10 @@ function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false) {
     .then(result => {
        if (result.status) {
          showToast("✓ Rekap terkirim ke WhatsApp!");
-         // Tambah hitungan pemakaian jika berhasil terkirim
          waCount++;
          localStorage.setItem('waShareCount', waCount.toString());
-         
-         // TAMBAHAN INI: Agar tombol langsung disable & redup seketika pada klik ke-2
-         if (typeof updateWaButtonState === 'function') {
-           updateWaButtonState();
-         }
-       }
-       else showToast("❌ WA Gagal: " + (result.reason || "Cek Token/Target"));
+         if (typeof updateWaButtonState === 'function') updateWaButtonState();
+       } else showToast("❌ WA Gagal: " + (result.reason || "Cek Token/Target"));
     })
     .catch(() => showToast("❌ Error jaringan saat kirim WA"))
     .finally(() => {
@@ -2389,10 +2379,8 @@ function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false) {
     });
   }
 
-  // Menghilangkan efek cahaya (glow) setelah tombol diklik
   const btnWaEl = document.getElementById('btn-rekap-wa');
   if (btnWaEl) btnWaEl.classList.remove('btn-glow');
-
 }
 
     // Fungsi untuk memuat data di awal (background process)
