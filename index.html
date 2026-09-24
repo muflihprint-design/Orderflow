@@ -506,14 +506,19 @@
 </div>
       </div>
       
-    <div class="p-6 bg-white border-t border-gray-100 space-y-3">
-  <!-- Tombol BARU untuk Hubungkan Transaksi -->
-  <button onclick="openImportModal(true)" class="w-full py-3 bg-emerald-50 text-emerald-700 rounded-2xl font-bold border border-emerald-100 flex justify-center items-center gap-2 active:scale-95 transition-all">
-    <i data-lucide="link" class="w-4 h-4"></i> Hubungkan Data Transaksi
-  </button>
-  
-  <button onclick="closeDetail()" class="w-full py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold">Tutup</button>
-</div>
+   <div class="p-6 bg-white border-t border-gray-100 space-y-3">
+      <!-- TOMBOL BARU DIPINDAHKAN KE SINI -->
+      <button id="det-resolve-btn" onclick="resolveRevisi()" class="hidden w-full py-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-2xl font-black tracking-wide active:scale-95 transition-all flex justify-center items-center gap-2">
+        <i data-lucide="check-circle-2" class="w-5 h-5 shrink-0"></i> TANDAI SEMUA REVISI SELESAI
+      </button>
+
+      <!-- Tombol BARU untuk Hubungkan Transaksi -->
+      <button onclick="openImportModal(true)" class="w-full py-3 bg-emerald-50 text-emerald-700 rounded-2xl font-bold border border-emerald-100 flex justify-center items-center gap-2 active:scale-95 transition-all">
+        <i data-lucide="link" class="w-4 h-4"></i> Hubungkan Data Transaksi
+      </button>
+      
+      <button onclick="closeDetail()" class="w-full py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold">Tutup</button>
+    </div>
     </div>
   </div>
 
@@ -629,11 +634,7 @@
           <button id="quick-note-save-btn" onclick="saveQuickNote()" class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black tracking-wide active:scale-95 transition-all flex justify-center items-center gap-2 shadow-lg shadow-blue-200">
             <i data-lucide="save" class="w-5 h-5 shrink-0"></i> SIMPAN REVISI
           </button>
-          
-          <!-- TOMBOL BARU: TANDAI SELESAI -->
-          <button id="quick-note-resolve-btn" onclick="resolveRevisi()" class="hidden w-full py-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-2xl font-black tracking-wide active:scale-95 transition-all flex justify-center items-center gap-2">
-            <i data-lucide="check-circle-2" class="w-5 h-5 shrink-0"></i> TANDAI SEMUA REVISI SELESAI
-          </button>
+                    
         </div>        
       </div>
     </div>
@@ -1445,6 +1446,16 @@ function openDetail(id) {
     `;
   }
 
+// --- LOGIKA MUNCULKAN TOMBOL SELESAIKAN REVISI ---
+  const activeRevisiCount = (order.description || "").match(/\[Revisi -/g)?.length || 0;
+  const resolveBtn = document.getElementById('det-resolve-btn');
+  if (activeRevisiCount > 0) {
+    resolveBtn.classList.remove('hidden');
+  } else {
+    resolveBtn.classList.add('hidden');
+  }
+  // ------------------------------------------------
+
   const badgesEl = document.getElementById('det-badges');
   badgesEl.innerHTML = `
     <span class="status-badge ${getStatusColor(order.status)}">${order.status}</span>
@@ -1865,8 +1876,7 @@ function proceedToQuickNote() {
 
   const modal = document.getElementById('quick-note-modal');
   const input = document.getElementById('quick-note-input');
-  const resolveBtn = document.getElementById('quick-note-resolve-btn');
-  
+    
   const currentNoteContainer = document.getElementById('quick-note-current-container');
   const currentNoteEl = document.getElementById('quick-note-current');
   
@@ -1877,12 +1887,6 @@ function proceedToQuickNote() {
     currentNoteContainer.classList.add('hidden');
   }
 
-  const activeRevisiCount = (order.description || "").match(/\[Revisi -/g)?.length || 0;
-  if (activeRevisiCount > 0) {
-    resolveBtn.classList.remove('hidden');
-  } else {
-    resolveBtn.classList.add('hidden');
-  }
   
   input.value = "";
   modal.classList.remove('hidden');
@@ -2090,10 +2094,11 @@ function closeQuickNoteModal() {
 }
 
 async function resolveRevisi() {
-  if (!quickNoteOrderId) return;
+  // Ganti quickNoteOrderId menjadi selectedOrderId
+  if (!selectedOrderId) return;
   
   // 1. Temukan order yang sedang direvisi
-  const orderIdx = allOrders.findIndex(o => o.id === quickNoteOrderId);
+  const orderIdx = allOrders.findIndex(o => o.id === selectedOrderId);
   if (orderIdx === -1) return;
 
   const currentDesc = allOrders[orderIdx].description || "";
@@ -2103,13 +2108,14 @@ async function resolveRevisi() {
   
   if (currentDesc === updatedDesc) return;
 
-  const btn = document.getElementById('quick-note-resolve-btn');
+  // Sesuaikan id tombol dengan id di modal detail
+  const btn = document.getElementById('det-resolve-btn');
   const originalHtml = btn.innerHTML;
   btn.innerHTML = '<i class="animate-spin w-4 h-4" data-lucide="loader-2"></i> MEMPROSES...';
   btn.disabled = true;
   if (window.lucide) lucide.createIcons();
 
- // 3. Update Data Lokal untuk Optimistic UI
+  // 3. Update Data Lokal untuk Optimistic UI
   allOrders[orderIdx].description = updatedDesc;
 
   // --- KODE BARU: OTOMATIS UBAH STATUS KE KONFIRMASI ---
@@ -2123,7 +2129,7 @@ async function resolveRevisi() {
 
   try {
     // 4. Kirim ke API Google Apps Script
-    const url = `${WEB_APP_URL}?action=updateDescription&id=${encodeURIComponent(quickNoteOrderId)}&description=${encodeURIComponent(updatedDesc)}`;
+    const url = `${WEB_APP_URL}?action=updateDescription&id=${encodeURIComponent(selectedOrderId)}&description=${encodeURIComponent(updatedDesc)}`;
     const response = await fetch(url);
     const result = await response.json();
     
@@ -2134,7 +2140,7 @@ async function resolveRevisi() {
       if (statusBerubah) {
         const stageDl = allOrders[orderIdx].statusDeadline || "";
         const finalDl = allOrders[orderIdx].finalDeadline || "";
-        const statusUrl = `${WEB_APP_URL}?action=updateStatus&id=${encodeURIComponent(quickNoteOrderId)}&status=Konfirmasi&statusDeadline=${encodeURIComponent(stageDl)}&finalDeadline=${encodeURIComponent(finalDl)}`;
+        const statusUrl = `${WEB_APP_URL}?action=updateStatus&id=${encodeURIComponent(selectedOrderId)}&status=Konfirmasi&statusDeadline=${encodeURIComponent(stageDl)}&finalDeadline=${encodeURIComponent(finalDl)}`;
         fetch(statusUrl); // Berjalan di latar belakang
       }
       // --------------------------------------------------------
@@ -2142,13 +2148,11 @@ async function resolveRevisi() {
       // --- LOGIKA BARU: SINKRONISASI SUPABASE ---
       const order = allOrders[orderIdx];
       
-      // Tambahkan ke Set lokal agar perangkat Anda tidak perlu memuat ulang datanya sendiri secara ganda
-      localUpdatedOrders.add(quickNoteOrderId);
+      localUpdatedOrders.add(selectedOrderId);
       
-      // Kirim trigger log ke Supabase agar perangkat tim lain langsung me-refresh data (loadOrders)
       supabaseClient.from('log_notifikasi_telegram').insert([{
          keterangan_event: "REVISI SELESAI",
-         nomor_pesanan: quickNoteOrderId,
+         nomor_pesanan: selectedOrderId,
          nama_pekerjaan: order.jobName || order.jobname || "-",
          isi_pesan: `Revisi pesanan ini telah ditandai selesai.`
       }]).then(() => {
@@ -2158,8 +2162,9 @@ async function resolveRevisi() {
       });
       // ------------------------------------------
 
-      closeQuickNoteModal();
-      applyFilters(); // Render ulang UI Anda agar badge notifikasi menghilang seketika
+      // Tutup modal detail bukan modal quick note
+      closeDetail();
+      applyFilters(); // Render ulang UI agar badge notifikasi menghilang seketika
     } else {
       showToast("❌ Gagal: " + (result.message || "Terjadi kesalahan"));
     }
