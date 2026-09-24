@@ -39,6 +39,17 @@
   100% { background-position: 468px 0; }
 }
 
+/* Efek Cahaya (Glow) Khusus Input Tanggal */
+@keyframes glow-input {
+  0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); background-color: #f9fafb; }
+  50% { box-shadow: 0 0 15px 5px rgba(37, 99, 235, 0.5); background-color: #eff6ff; }
+  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); background-color: #f9fafb; }
+}
+.input-glow-effect {
+  animation: glow-input 1.2s infinite ease-in-out;
+  border: 1px solid #3b82f6 !important;
+}
+
     #toast { 
   visibility: hidden; 
   min-width: 200px; 
@@ -365,29 +376,9 @@
   </div>
 </div>
 
-    <!-- SECTION 3: STATUS & DEADLINE -->
-    <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-      <div class="flex items-center gap-2 mb-2 text-green-600">
-        <i data-lucide="calendar" class="w-4 h-4"></i>
-        <span class="text-[10px] font-bold uppercase tracking-widest">Status & Waktu</span>
-      </div>
-
-      <div>
-  <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Status Awal</label>
-  <div class="relative">
-    <select name="status" class="w-full p-4 bg-blue-50 text-blue-700 border-0 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
-      <option value="Desain" selected>🎨 Desain</option>
-      <option value="Cetak">🖨️ Cetak</option>
-     </select>
-    <!-- Ikon panah bawah tambahan (opsional) -->
-    <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-blue-500">
-      <i data-lucide="chevron-down" class="w-5 h-5"></i>
-    </div>
-  </div>
-</div>
-
+  <!-- Ganti bagian SECTION 3 Anda dengan ini, pastikan tidak ada duplikasi input tanggalPengambilan -->
       <div class="grid grid-cols-2 gap-3">
-               <div class="bg-blue-600 rounded-2xl p-[2px]"> <!-- Highlight untuk target tahapan -->
+               <div class="bg-blue-600 rounded-2xl p-[2px]"> 
           <div class="bg-white rounded-[14px] p-3">
             <label class="block text-[9px] font-black text-blue-600 uppercase mb-1">Target Tahapan</label>
             <input type="date" name="statusDeadline" required 
@@ -395,12 +386,33 @@
           </div>
         </div>
          <div>
-          <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Deadline Final</label>
-          <input type="date" name="finalDeadline" required onchange="autoSetPriority()"
-       class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-xs">
-        </div>
+  <div class="relative">
+  <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Tanggal Pengambilan</label>
+  <input type="date" name="tanggalPengambilan" required onchange="autoSetPriority()"
+    class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-xs">
+  
+  <!-- Tooltip Info Deadline (Disembunyikan secara default) -->
+  <div id="pickup-tooltip" class="hidden absolute bottom-full left-0 mb-3 w-64 bg-blue-900 text-white p-4 rounded-2xl shadow-2xl z-50">
+    <!-- Panah penunjuk arah ke bawah -->
+    <div class="absolute -bottom-2 left-8 w-4 h-4 bg-blue-900 border-b border-r border-blue-400 transform rotate-45"></div>
+    
+    <div class="flex justify-between items-start mb-2 relative z-10">
+      <div class="flex items-center gap-2">
+        <i data-lucide="info" class="w-5 h-5 text-blue-300"></i>
+        <h4 class="font-bold text-sm">Info Sistem</h4>
       </div>
+      <button type="button" onclick="closePickupTooltip()" class="text-blue-300 hover:text-white">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
     </div>
+    <p class="text-[11px] leading-relaxed relative z-10 text-blue-50">
+      Sistem kini menggunakan <b>Tanggal Pengambilan</b>.<br><br>
+      Sistem akan otomatis mengatur <i>Deadline Final</i> menjadi <b>H-1</b> dari tanggal yang Anda masukkan agar pesanan selesai tepat waktu.
+    </p>
+  </div>
+</div>
+</div>
+      </div>
 
  <!-- SECTION 4: KELENGKAPAN & CATATAN -->
 <div class="space-y-4">
@@ -456,6 +468,7 @@
     </div>
   </main>
 
+ 
   <!-- Modal Detail -->
   <div id="detail-modal" class="fixed inset-0 z-[60] hidden bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
     <div class="modal-content bg-white w-full max-w-lg rounded-t-[2rem] sm:rounded-[2rem] max-h-[90vh] overflow-hidden flex flex-col transform scale-95 opacity-0 transition-all duration-300">
@@ -639,6 +652,28 @@
       </div>
     </div>
   </div>
+
+   <!-- Modal Peringatan Perubahan Sistem (Tampil 1x sehari selama 3 Hari) -->
+<div id="update-info-modal" class="fixed inset-0 z-[100] hidden bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity duration-300 opacity-0">
+  <div class="bg-white w-full max-w-sm rounded-t-[2rem] sm:rounded-[2rem] overflow-hidden flex flex-col transform transition-all duration-300 p-6 text-center shadow-2xl scale-95">
+    
+    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner border-4 border-white">
+      <i data-lucide="bell-ring" class="w-8 h-8 text-blue-600 animate-bounce"></i>
+    </div>
+    
+    <h3 class="text-2xl font-black text-gray-900 mb-2 italic">Update Sistem!</h3>
+    
+    <div class="text-sm text-gray-600 mb-6 leading-relaxed text-left bg-blue-50 p-4 rounded-xl border border-blue-100">
+      <p class="mb-2">Sistem kini menggunakan format <b>Tanggal Pengambilan</b> saat membuat pesanan baru.</p>
+      <p>Sistem akan secara otomatis memajukan <i>Deadline Final</i> di database menjadi <b>H-1</b> dari tanggal yang Anda masukkan.</p>
+    </div>
+    
+    <button onclick="closeUpdateInfoModal()" class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black tracking-wide shadow-lg shadow-blue-200 active:scale-95 transition-all">
+      SAYA MENGERTI
+    </button>
+  </div>
+</div>
+
   
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbziGxwN_4Yf4or-16UrBDVNyx2MLW4PSbLrTB9dXcGivKp1XzaLQ1Pz2XkrlVxdt-jgtg/exec';
@@ -722,8 +757,95 @@ async function checkForUpdates() {
   }
 }
 
-// Jalankan otomatis
-document.addEventListener('DOMContentLoaded', checkForUpdates);
+// Fungsi mengecek apakah pop-up update perlu dimunculkan (3 hari sejak pertama dibuka)
+function checkUpdateNotification() {
+  const todayDate = new Date();
+  const todayStr = todayDate.toLocaleDateString('id-ID'); 
+  
+  let startDateStr = localStorage.getItem('updateInfoStartDate');
+  
+  // Jika ini adalah pertama kalinya aplikasi dibuka setelah fitur ditambahkan
+  if (!startDateStr) {
+    startDateStr = todayDate.toISOString(); 
+    localStorage.setItem('updateInfoStartDate', startDateStr);
+  }
+  
+  const startDate = new Date(startDateStr);
+  startDate.setHours(0, 0, 0, 0);
+  
+  const currentDate = new Date();
+  currentDate.setHours(0, 0, 0, 0);
+  
+  // Hitung selisih hari
+  const diffTime = Math.abs(currentDate - startDate);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  // Jika rentang waktu masih di bawah 3 hari (hari ke-0, 1, dan 2)
+  if (diffDays < 3) {
+    const lastShownDate = localStorage.getItem('updateInfoLastShown');
+    
+    // Jika pop-up belum ditampilkan HARI INI
+    if (lastShownDate !== todayStr) {
+      setTimeout(() => {
+        const modal = document.getElementById('update-info-modal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          // Animasi Fade In dan Scale In
+          setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.querySelector('.bg-white').classList.remove('scale-95');
+            modal.querySelector('.bg-white').classList.add('scale-100');
+            if (window.lucide) lucide.createIcons();
+          }, 50);
+        }
+        // Catat bahwa pop-up sudah tayang hari ini
+        localStorage.setItem('updateInfoLastShown', todayStr);
+      }, 1500); // Muncul otomatis 1 detik setelah aplikasi terbuka
+    }
+  }
+}
+
+// Fungsi menutup pop-up dengan animasi, scroll otomatis, dan efek menyala
+function closeUpdateInfoModal() {
+  const modal = document.getElementById('update-info-modal');
+  
+  // Memulai animasi penutupan
+  modal.classList.add('opacity-0');
+  modal.querySelector('.bg-white').classList.remove('scale-100');
+  modal.querySelector('.bg-white').classList.add('scale-95');
+  
+  // Tunggu durasi transisi selesai (300ms)
+  setTimeout(() => {
+    modal.classList.add('hidden');
+    
+    // 1. Pindah ke tab Tambah
+    switchTab('tambah');
+    
+    // 2. Beri sedikit jeda agar tab selesai dirender sebelum melakukan scroll
+    setTimeout(() => {
+      const inputTanggal = document.querySelector('input[name="tanggalPengambilan"]');
+      
+      if (inputTanggal) {
+        // Scroll otomatis agar input berada di tengah layar
+        inputTanggal.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Tambahkan efek menyala
+        inputTanggal.classList.add('input-glow-effect');
+        
+        // Hapus efek menyala jika user mengklik / fokus pada input tersebut
+        inputTanggal.addEventListener('focus', function() {
+          this.classList.remove('input-glow-effect');
+        }, { once: true });
+        
+        // Opsional: Hapus efek menyala secara otomatis setelah 6 detik
+        setTimeout(() => {
+          inputTanggal.classList.remove('input-glow-effect');
+        }, 6000);
+      }
+    }, 350); // Jeda transisi antar halaman
+    
+  }, 300); 
+}
 
 // Fungsi mengecek hari dan memunculkan tooltip + cahaya di tombol
 function checkDailyTooltip() {
@@ -740,7 +862,7 @@ function checkDailyTooltip() {
       
       if(tooltip) tooltip.classList.remove('hidden');
       if(btnWa) btnWa.classList.add('btn-glow'); // << Tombol WA mulai bersinar
-    }, 1500); 
+    }, 500); 
   }
 }
 
@@ -752,9 +874,38 @@ function closeWaTooltip() {
   if(btnWa) btnWa.classList.remove('btn-glow'); // << Cahaya tombol WA dimatikan
 }
 
-// Panggil fungsi cek harian saat web dimuat
+// --- KUMPULAN FUNGSI YANG DIJALANKAN SAAT WEB PERTAMA KALI DIMUAT ---
 document.addEventListener('DOMContentLoaded', () => {
-  checkDailyTooltip();
+  // 1. Cek pembaruan versi (background)
+  checkForUpdates();
+  
+  // 2. Setelan awal form "Tambah" (default: Undangan)
+  toggleOrderLogic();
+
+  // 3. Jalankan Pop-up Update Sistem (Tanggal Pengambilan)
+  checkUpdateNotification(); 
+  
+  // 4. Logika pemisahan Tooltip WA agar tidak bertabrakan dengan Pop-up Update
+  const todayDate = new Date();
+  const todayStr = todayDate.toLocaleDateString('id-ID'); 
+  let startDateStr = localStorage.getItem('updateInfoStartDate');
+  
+  let willShowUpdateModal = false;
+  if (!startDateStr) {
+    willShowUpdateModal = true;
+  } else {
+    const diffTime = Math.abs(todayDate.setHours(0,0,0,0) - new Date(startDateStr).setHours(0,0,0,0));
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    // Jika masih dalam rentang 3 hari (0, 1, 2) dan belum tayang hari ini
+    if (diffDays < 3 && localStorage.getItem('updateInfoLastShown') !== todayStr) {
+      willShowUpdateModal = true;
+    }
+  }
+
+  // Jika pop-up Update Sistem TIDAK muncul hari ini, Tooltip WA boleh langsung tayang
+  if (!willShowUpdateModal) {
+    checkDailyTooltip();
+  }
 });
 
 // Fungsi untuk mematikan tombol WA jika sudah limit
@@ -787,6 +938,32 @@ function updateWaButtonState() {
   }
 }
 
+// Fungsi untuk mengecek dan memunculkan tooltip tanggal pengambilan (1x sehari)
+function checkPickupTooltip() {
+  const today = new Date().toLocaleDateString('id-ID');
+  const lastDate = localStorage.getItem('lastPickupTooltipDate');
+  
+  if (lastDate !== today) {
+    localStorage.setItem('lastPickupTooltipDate', today); // Simpan tanggal hari ini
+    
+    setTimeout(() => {
+      const tooltip = document.getElementById('pickup-tooltip');
+      if(tooltip) {
+        tooltip.classList.remove('hidden');
+        if (window.lucide) lucide.createIcons(); // Render ikon dalam tooltip
+      }
+    }, 800); // Berikan sedikit jeda agar animasi natural saat pindah tab
+  }
+}
+
+// Fungsi untuk menutup tooltip secara manual
+function closePickupTooltip() {
+  const tooltip = document.getElementById('pickup-tooltip');
+  if (tooltip) tooltip.classList.add('hidden');
+  
+  // --- KODE BARU: Munculkan Tooltip WA setelah info sistem ini ditutup ---
+  checkDailyTooltip();
+}
 
 // Fungsi untuk menampilkan daftar di modal
 function renderImportList(data) {
@@ -986,6 +1163,15 @@ function switchTab(tabId, isHistoryPop = false) {
   
   if (tabId === 'antrian' || tabId === 'selesai') applyFilters();
 
+  // --- KODE BARU: Logika pemisahan Tooltip ---
+  if (tabId === 'tambah') {
+    // Jika masuk tab tambah, jalankan pengecekan Tooltip Tanggal Pengambilan
+    checkPickupTooltip();
+  } else {
+    // Jika pindah ke tab Antrian / Selesai, coba jalankan Tooltip WA
+    checkDailyTooltip();
+  }
+
   // Tambahkan state ke history browser hanya jika navigasi bukan berasal dari tombol back HP
   if (!isHistoryPop) {
     window.history.pushState({ tab: tabId }, '', '#' + tabId);
@@ -1119,15 +1305,17 @@ function togglePhotoLogic() {
   }
 }
 
-// FUNGSI BARU: Set Prioritas Otomatis Berdasarkan Deadline Final
 function autoSetPriority() {
-  const finalDeadlineInput = document.querySelector('input[name="finalDeadline"]');
+  const tanggalPengambilanInput = document.querySelector('input[name="tanggalPengambilan"]');
   const prioritySelect = document.querySelector('select[name="priority"]');
   
-  if (!finalDeadlineInput.value) return;
+  if (!tanggalPengambilanInput.value) return;
 
-  const dFinal = new Date(finalDeadlineInput.value);
+  // Kurangi 1 hari dari input untuk mencocokkan logika Deadline Final di database
+  const dFinal = new Date(tanggalPengambilanInput.value);
+  dFinal.setDate(dFinal.getDate() - 1); 
   dFinal.setHours(0, 0, 0, 0);
+  
   const dNow = new Date();
   dNow.setHours(0, 0, 0, 0);
 
@@ -1135,22 +1323,14 @@ function autoSetPriority() {
   const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
 
   if (diffDays <= 0) {
-    // Jika deadline hari ini (0) atau sudah lewat
     prioritySelect.value = "Sangat Urgent";
   } else if (diffDays <= 3) {
-    // Jika deadline tersisa 1, 2, atau 3 hari
     prioritySelect.value = "Urgent";
   } else {
-    // Jika deadline tersisa lebih dari 3 hari
     prioritySelect.value = "Normal";
   }
 }
 
-// Jalankan saat halaman pertama dimuat agar default "Undangan" tersetting
-document.addEventListener('DOMContentLoaded', () => {
-  checkForUpdates();
-  toggleOrderLogic();
-});
 
 function openStatusModalFromCard(orderId, event) {
   // 1. Set ID order yang diklik
@@ -1203,8 +1383,7 @@ async function handleFormSubmit(e) {
   if (formattedPhone.startsWith('0')) formattedPhone = '62' + formattedPhone.substring(1);
   else if (formattedPhone.startsWith('+62')) formattedPhone = formattedPhone.substring(1);
 
-  // --- LOGIKA PENGGABUNGAN CATATAN ---
-  // --- LOGIKA PENGGABUNGAN CATATAN ---
+   // --- LOGIKA PENGGABUNGAN CATATAN ---
   const orderType = formData.get('orderType');
   let finalDescription = formData.get('description') || '';
 
@@ -1246,19 +1425,35 @@ async function handleFormSubmit(e) {
       finalDescription = `[Jenis: Lain-lain]\n` + (finalDescription ? finalDescription : '-');
   }
 
-  const orderData = {
-    action: 'addNewOrder',
-    customer: formData.get('customer'),
-    phone: formattedPhone, 
-    jobName: formData.get('jobName'),
-    quantity: formData.get('quantity'),
-    priority: formData.get('priority'),
-    status: formData.get('status') || 'Desain',
-    equipment: formData.get('equipment'), 
-    description: finalDescription, // Mengirim data yang telah digabung
-    finalDeadline: formData.get('finalDeadline'),
-    statusDeadline: formData.get('statusDeadline')
-  };
+ // --- KODE BARU: Pengurangan 1 hari untuk Deadline Final ---
+const inputTanggalPengambilan = formData.get('tanggalPengambilan');
+let calculatedFinalDeadline = '';
+
+if (inputTanggalPengambilan) {
+  const dateObj = new Date(inputTanggalPengambilan);
+  dateObj.setDate(dateObj.getDate() - 1); // Kurangi 1 hari
+  
+  // Format kembali ke YYYY-MM-DD
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  calculatedFinalDeadline = `${year}-${month}-${day}`;
+}
+// ---------------------------------------------------------
+
+const orderData = {
+  action: 'addNewOrder',
+  customer: formData.get('customer'),
+  phone: formattedPhone, 
+  jobName: formData.get('jobName'),
+  quantity: formData.get('quantity'),
+  priority: formData.get('priority'),
+  status: formData.get('status') || 'Desain',
+  equipment: formData.get('equipment'), 
+  description: finalDescription, 
+  finalDeadline: calculatedFinalDeadline, // Kirim tanggal yang sudah dikurangi 1 hari
+  statusDeadline: formData.get('statusDeadline')
+};
 
   try {
     const queryParams = new URLSearchParams(orderData).toString();
