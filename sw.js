@@ -1,5 +1,5 @@
 // NAMA CACHE DIBUAT UNIK AGAR TIDAK BENTROK DENGAN APLIKASI LAIN
-const CACHE_NAME = 'orderflow-pro-cache-v1.0.3'; 
+const CACHE_NAME = 'orderflow-pro-cache-v1.0.4'; 
 
 const urlsToCache = [
   './',
