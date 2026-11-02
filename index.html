@@ -1106,20 +1106,7 @@ function closeImportModal() {
   document.getElementById('search-import').value = "";
 }
 
-// Helper CSV Parser
-function parseCSVRow(row) {
-  const result = [];
-  let cur = "", inQuotes = false;
-  for (let i = 0; i < row.length; i++) {
-    if (row[i] === '"' && row[i+1] === '"') { cur += '"'; i++; }
-    else if (row[i] === '"') inQuotes = !inQuotes;
-    else if (row[i] === ',' && !inQuotes) { result.push(cur); cur = ""; }
-    else cur += row[i];
-  }
-  result.push(cur);
-  return result;
-}
-    
+ 
 
     // FUNGSI DEADLINE DARI USER
     function getDeadlineLabel(dateStr) {
@@ -2592,38 +2579,54 @@ function processOrderRekap(sendToTelegram = true, sendToWhatsApp = false, pesanP
   if (btnWaEl) btnWaEl.classList.remove('btn-glow');
 }
 
-    // Fungsi untuk memuat data di awal (background process)
+// Fungsi untuk memuat data transaksi dari Supabase
 async function preloadSheetData() {
-  const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQWpY4lD9wfdsds6puKdVdBgcOxMeLlBFyQIP29zVnrWaeBVO71CtwMYmPE13DbxJUGlXGgXyPPm3Xn/pub?gid=1396587639&single=true&output=csv";
-  
   try {
-    const response = await fetch(sheetUrl);
-    const csvText = await response.text();
-    const rows = csvText.split('\n').filter(row => row.trim() !== "");
+    // Ambil data dari tabel 'transaksi' di Supabase
+    const { data, error } = await supabaseClient
+      .from('transaksi')
+      .select('id, subjek, detail_json, kategori')
+      .eq('kategori', 'Penjualan') // Mengambil yang khusus penjualan (sesuai logika lama)
+      .order('waktu', { ascending: false })
+      .limit(300); // Batasi 300 data terbaru agar loading tetap ringan
+
+    if (error) throw error;
+
     const validData = [];
     
-    for (let i = 1; i < rows.length; i++) {
-      const cols = parseCSVRow(rows[i]);
-      const trxId = cols[0] ? cols[0].trim() : ""; // Kolom A (Indeks 0)
-      const kategori = cols[3] ? cols[3].trim() : "";
-      const jsonStr = cols[10] ? cols[10].trim() : "";
+    data.forEach(row => {
+      let items = [];
       
-      if (kategori === "Penjualan" && jsonStr.startsWith('[')) {
+      // Amankan ekstraksi data JSON dari kolom detail_json
+      if (Array.isArray(row.detail_json)) {
+        items = row.detail_json;
+      } else if (row.detail_json && Array.isArray(row.detail_json.items)) {
+        items = row.detail_json.items;
+      } else if (typeof row.detail_json === 'string') {
         try {
-          const items = JSON.parse(jsonStr);
-          validData.push({
-            id: trxId, // Simpan ID Transaksi
-            customer: cols[8] || "Tanpa Nama",
-            items: items
-          });
-        } catch (e) { continue; }
+          const parsed = JSON.parse(row.detail_json);
+          items = Array.isArray(parsed) ? parsed : (parsed.items || []);
+        } catch(e) {}
       }
-    }
-    rawSheetData = validData.reverse(); 
-    console.log("Data siap: " + rawSheetData.length + " transaksi.");
-  } catch (err) { console.error(err); }
-}
+
+      // Jika transaksi memiliki item barang, format sesuai kebutuhan OrderFlow
+      if (items.length > 0) {
+        validData.push({
+          id: row.id,
+          customer: row.subjek || "Tanpa Nama", // 'subjek' sebagai nama customer
+          items: items
+        });
+      }
+    });
     
+    rawSheetData = validData; 
+    console.log("Data Supabase siap: " + rawSheetData.length + " transaksi.");
+  } catch (err) { 
+    console.error("Gagal mengambil data dari Supabase:", err); 
+    showToast("❌ Gagal memuat data transaksi dari database.");
+  }
+}
+
 // Perbarui fungsi buka modal agar lebih responsif
 let isUpdateMode = false; // Variabel kontrol global
 
@@ -2633,21 +2636,22 @@ async function openImportModal(isUpdate = false) {
   const modal = document.getElementById('import-modal');
   modal.classList.remove('hidden');
   
-  // Jika data belum ada, lakukan preload terlebih dahulu
-  if (rawSheetData.length === 0) {
-    showToast("Memuat data transaksi...");
-    await preloadSheetData();
-  }
+  // Tampilkan efek loading sementara di dalam daftar
+  const container = document.getElementById('import-list-container');
+  container.innerHTML = '<div class="py-10 text-center text-gray-400 flex flex-col justify-center items-center gap-2"><i class="animate-spin w-6 h-6 text-blue-500" data-lucide="loader-2"></i> Mengambil data Supabase...</div>';
+  if (window.lucide) lucide.createIcons();
+  
+  // Selalu muat data terbaru dari Supabase setiap modal dibuka
+  await preloadSheetData();
   
   renderImportList(rawSheetData);
-  lucide.createIcons();
+  if (window.lucide) lucide.createIcons();
   
-  // Animasi masuk modal[cite: 1]
+  // Animasi masuk modal
   setTimeout(() => {
     modal.querySelector('.bg-white').classList.add('opacity-100');
   }, 10);
 }
-
 
 function setPagination(limit) {
   selesaiLimit = limit;
