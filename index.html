@@ -344,12 +344,19 @@
   </div>
 
   <div id="drive-link-container" class="hidden">
-      <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1 flex justify-between items-center">
-        <span>Link Google Drive Foto <span class="text-red-500">*</span></span>
-      </label>
+    <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1 flex justify-between items-center">
+      <span>Link Google Drive Foto <span class="text-red-500">*</span></span>
+    </label>
+    <div class="flex gap-2">
       <input type="url" name="driveLink" id="driveLink" placeholder="https://drive.google.com/..." class="w-full p-4 bg-gray-50 border-0 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-      <p id="drive-error" class="text-xs text-red-500 font-bold mt-2 ml-1 hidden">⚠️ Link harus berupa URL Google Drive yang valid (drive.google.com).</p>
+      
+      <!-- TOMBOL BARU UNTUK BUAT FOLDER -->
+      <button type="button" onclick="createDriveFolder()" id="btn-create-folder" class="shrink-0 px-4 bg-blue-100 text-blue-700 font-bold rounded-2xl border border-blue-200 active:scale-95 hover:bg-blue-200 transition-all flex flex-col items-center justify-center gap-1 text-[10px] uppercase tracking-wider">
+        <i data-lucide="folder-plus" class="w-5 h-5"></i> Buat Folder
+      </button>
     </div>
+    <p id="drive-error" class="text-xs text-red-500 font-bold mt-2 ml-1 hidden">⚠️ Link harus berupa URL Google Drive yang valid (drive.google.com).</p>
+  </div>
 
   <div>
     <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Nama Pekerjaan</label>
@@ -1297,6 +1304,78 @@ function togglePhotoLogic() {
     }
   }
 }
+
+
+// FUNGSI BARU: MEMBUAT FOLDER DRIVE OTOMATIS (DENGAN ANTI POP-UP BLOCKER)
+async function createDriveFolder() {
+  const customer = document.querySelector('input[name="customer"]').value.trim();
+  const jobName = document.querySelector('input[name="jobName"]').value.trim();
+  
+  // Validasi: Pastikan nama dan kerjaan sudah diisi untuk nama folder
+  if (!customer || !jobName) {
+    showToast("⚠️ Isi Nama Customer & Nama Pekerjaan terlebih dahulu!");
+    return;
+  }
+
+  const folderName = `${customer} - ${jobName}`;
+  const btn = document.getElementById('btn-create-folder');
+  const originalBtnHtml = btn.innerHTML;
+  
+  // 1. TRIK ANTI POP-UP BLOCKER: Buka tab kosong seketika saat tombol diklik
+  const newTab = window.open('', '_blank');
+  
+  // Tampilkan teks loading di tab baru tersebut agar layar tidak sekadar putih
+  if (newTab) {
+    newTab.document.write('<h3 style="font-family:sans-serif; text-align:center; margin-top:20%; color:#2563eb;">Sedang membuat folder di Google Drive...<br><span style="font-size:14px; color:#6b7280;">Mohon tunggu sebentar.</span></h3>');
+  }
+
+  // Ubah tombol jadi status loading
+  btn.innerHTML = '<i class="animate-spin w-5 h-5" data-lucide="loader-2"></i> <span class="mt-1 text-[8px]">MEMPROSES</span>';
+  btn.disabled = true;
+  btn.classList.add('opacity-70', 'cursor-not-allowed');
+  if (window.lucide) lucide.createIcons();
+  
+  try {
+    const url = `${WEB_APP_URL}?action=createFolder&folderName=${encodeURIComponent(folderName)}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    
+    if (result.success && result.folderUrl) {
+      // 2. Isi input dengan link folder
+      document.getElementById('driveLink').value = result.folderUrl;
+      document.getElementById('drive-error').classList.add('hidden');
+      
+      showToast("✓ Folder berhasil dibuat!");
+      
+      // 3. Arahkan tab yang tadi sudah dibuka ke link Google Drive
+      if (newTab) {
+        newTab.location.href = result.folderUrl;
+      } else {
+        // Fallback jika browser HP sangat ketat (menggunakan elemen anchor tersembunyi)
+        const link = document.createElement('a');
+        link.href = result.folderUrl;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } else {
+      if (newTab) newTab.close(); // Tutup tab kosong jika gagal
+      showToast("❌ Gagal membuat folder: " + (result.error || "Unknown Error"));
+    }
+  } catch (error) {
+    if (newTab) newTab.close(); // Tutup tab kosong jika error jaringan
+    console.error("Error creating folder:", error);
+    showToast("❌ Terjadi kesalahan jaringan.");
+  } finally {
+    // Kembalikan status tombol
+    btn.innerHTML = originalBtnHtml;
+    btn.disabled = false;
+    btn.classList.remove('opacity-70', 'cursor-not-allowed');
+    if (window.lucide) lucide.createIcons();
+  }
+}
+
 
 function autoSetPriority() {
   const tanggalPengambilanInput = document.querySelector('input[name="tanggalPengambilan"]');
